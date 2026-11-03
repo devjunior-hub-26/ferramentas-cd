@@ -1,0 +1,5 @@
+# Configurações locais do Claude e planilhas com dados reais nunca vão para o GitHub
+.claude/
+*.xlsx
+*.xls
+*.csv

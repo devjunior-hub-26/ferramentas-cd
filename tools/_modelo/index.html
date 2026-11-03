@@ -1,0 +1,44 @@
+<!doctype html>
+<!-- MODELO de ferramenta: copie esta pasta para /tools/<nome-da-ferramenta>/ -->
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0A1F44">
+  <title>Nova ferramenta · Ferramentas do CD</title>
+  <link rel="manifest" href="../../manifest.json">
+  <link rel="icon" href="../../assets/icons/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../assets/css/global.css">
+</head>
+<body>
+  <header class="topo">
+    <a class="icone-btn" id="btn-voltar" href="../../index.html" aria-label="Voltar ao início"></a>
+    <div class="titulo">
+      <strong>Nova ferramenta</strong>
+      <small id="t-usuario"></small>
+    </div>
+  </header>
+
+  <main class="conteudo">
+    <div class="cartao">
+      <h2>Olá!</h2>
+      <p>Esta é uma ferramenta de exemplo. O login já foi verificado.</p>
+      <button class="btn" id="btn-teste">Botão principal</button>
+    </div>
+  </main>
+
+  <script type="module" src="../../assets/js/pwa.js"></script>
+  <script type="module">
+    import { exigirLogin, PERFIS } from '../../assets/js/auth.js';
+    import { $, toast } from '../../assets/js/ui.js';
+    import { icone } from '../../assets/js/icones.js';
+
+    // Perfis que podem abrir esta página (use os mesmos de tools.js)
+    const perfil = await exigirLogin(['admin', 'lider', 'carregador']);
+
+    $('#btn-voltar').innerHTML = icone('voltar');
+    $('#t-usuario').textContent = `${perfil.nome} · ${PERFIS[perfil.perfil]}`;
+    $('#btn-teste').addEventListener('click', () => toast('Funcionando!', 'sucesso'));
+  </script>
+</body>
+</html>

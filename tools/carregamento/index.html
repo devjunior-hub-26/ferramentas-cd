@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0A1F44">
+  <title>Carregamento · Ferramentas do CD</title>
+  <link rel="manifest" href="../../manifest.json">
+  <link rel="icon" href="../../assets/icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="../../assets/icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="../../assets/css/global.css">
+  <link rel="stylesheet" href="carregamento.css">
+</head>
+<body>
+  <header class="topo">
+    <a class="icone-btn" id="btn-voltar" href="../../index.html" aria-label="Voltar ao início" title="Início"></a>
+    <div class="titulo">
+      <strong id="t-usuario">Carregamento</strong>
+      <small id="t-equipe">Carregando equipe...</small>
+    </div>
+    <div class="sync" aria-live="polite">
+      <span id="sync-status" class="ponto">Online</span>
+      <span id="sync-pend" class="pendentes" hidden></span>
+    </div>
+  </header>
+
+  <nav class="abas" id="abas" role="tablist">
+    <button data-aba="ler" role="tab">Ler QR</button>
+    <button data-aba="minhas" role="tab">Minhas leituras</button>
+    <button data-aba="equipe" role="tab" hidden>Minha equipe</button>
+    <a id="link-painel" class="btn pequeno secundario" href="painel.html" hidden>Painel</a>
+  </nav>
+
+  <main class="conteudo">
+    <!-- LEITURA -->
+    <section id="aba-ler">
+      <div class="faixa-equipe" id="faixa-equipe" hidden>
+        <div><small>Lançando para</small><br><strong id="faixa-nome"></strong></div>
+      </div>
+      <div id="bloqueio" class="aviso erro" hidden>Você não está em nenhuma equipe. Procure o administrador.</div>
+
+      <div class="leitor-wrap" id="leitor-wrap">
+        <div id="leitor"></div>
+        <div id="leitor-msg">Iniciando câmera...</div>
+      </div>
+
+      <div id="resultado" class="resultado">
+        <div class="r-titulo">Aponte a câmera para o QR Code</div>
+        <div class="r-msg suave">A leitura é registrada automaticamente.</div>
+      </div>
+
+      <div class="acoes-leitura">
+        <button class="btn secundario" id="btn-digitar"></button>
+        <button class="btn secundario" id="btn-lanterna" disabled></button>
+      </div>
+
+      <p class="contador-dia" id="contador-dia"></p>
+
+      <div class="cartao" id="problemas" hidden>
+        <h3>Leituras não aceitas pelo servidor</h3>
+        <div id="lista-problemas"></div>
+      </div>
+    </section>
+
+    <!-- MINHAS LEITURAS -->
+    <section id="aba-minhas" hidden>
+      <div class="kpis">
+        <div class="kpi"><div class="rotulo">Leituras hoje</div><div class="valor" id="k-leituras">0</div></div>
+        <div class="kpi"><div class="rotulo">Carregamentos</div><div class="valor" id="k-carregamentos">0</div></div>
+        <div class="kpi"><div class="rotulo">Não enviadas</div><div class="valor" id="k-pendentes">0</div></div>
+      </div>
+      <h2>Por carregamento</h2>
+      <div class="tabela-wrap"><table class="tabela">
+        <thead><tr><th>Carregamento</th><th class="num">Leituras</th><th>Início</th><th>Última</th></tr></thead>
+        <tbody id="tb-resumo"></tbody>
+      </table></div>
+      <h2 class="mt">Leituras de hoje</h2>
+      <div class="tabela-wrap"><table class="tabela">
+        <thead><tr><th>Hora</th><th>Carregamento</th><th>Box</th><th>Transação</th><th>Situação</th></tr></thead>
+        <tbody id="tb-minhas"></tbody>
+      </table></div>
+    </section>
+
+    <!-- EQUIPE (LÍDER) -->
+    <section id="aba-equipe" hidden>
+      <div class="grade-filtros">
+        <div class="campo"><label for="eq-equipe">Equipe</label><select id="eq-equipe"></select></div>
+        <div class="campo"><label for="eq-data">Data</label><input id="eq-data" type="date"></div>
+        <div class="campo"><button class="btn" id="eq-atualizar">Atualizar</button></div>
+      </div>
+      <div class="kpis mt">
+        <div class="kpi"><div class="rotulo">Leituras</div><div class="valor" id="ke-leituras">0</div></div>
+        <div class="kpi"><div class="rotulo">Carregamentos</div><div class="valor" id="ke-carregamentos">0</div></div>
+        <div class="kpi"><div class="rotulo">Canceladas</div><div class="valor" id="ke-canceladas">0</div></div>
+      </div>
+      <div class="tabela-wrap"><table class="tabela">
+        <thead><tr><th>Hora</th><th>Usuário</th><th>Carregamento</th><th>Box</th><th>Transação</th><th>Situação</th><th>Ações</th></tr></thead>
+        <tbody id="tb-equipe"></tbody>
+      </table></div>
+    </section>
+  </main>
+
+  <!-- Digitar código manualmente (etiqueta danificada) -->
+  <dialog class="modal" id="modal-digitar">
+    <form method="dialog">
+      <div class="modal-topo">Digitar código</div>
+      <div class="modal-corpo">
+        <div class="campo"><label>Carregamento</label><input name="carregamento" inputmode="numeric" pattern="\d{1,20}" required></div>
+        <div class="campo"><label>Box</label><input name="box" inputmode="numeric" pattern="\d{1,10}" required></div>
+        <div class="campo"><label>Transação</label><input name="transacao" inputmode="numeric" pattern="\d{1,20}" required></div>
+      </div>
+      <div class="modal-rodape">
+        <button type="button" class="btn secundario" data-cancelar>Cancelar</button>
+        <button type="submit" class="btn">Registrar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="modal" id="modal-corrigir">
+    <form method="dialog">
+      <div class="modal-topo">Corrigir leitura</div>
+      <div class="modal-corpo">
+        <p class="suave" id="corrigir-info"></p>
+        <div class="campo"><label>Carregamento</label><input name="carregamento" inputmode="numeric" pattern="\d{1,20}" required></div>
+        <div class="campo"><label>Box</label><input name="box" inputmode="numeric" pattern="\d{1,10}" required></div>
+      </div>
+      <div class="modal-rodape">
+        <button type="button" class="btn secundario" data-cancelar>Voltar</button>
+        <button type="submit" class="btn">Salvar correção</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="modal" id="modal-cancelar">
+    <form method="dialog">
+      <div class="modal-topo">Cancelar leitura</div>
+      <div class="modal-corpo">
+        <p id="cancelar-info"></p>
+        <div class="campo"><label>Motivo</label><textarea name="motivo" required maxlength="300" placeholder="Ex.: lida por engano, carga de outro caminhão"></textarea></div>
+      </div>
+      <div class="modal-rodape">
+        <button type="button" class="btn secundario" data-cancelar>Voltar</button>
+        <button type="submit" class="btn perigo">Cancelar leitura</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script type="module" src="../../assets/js/pwa.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

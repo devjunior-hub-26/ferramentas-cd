@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0A1F44">
+  <title>Painel de Produtividade · Ferramentas do CD</title>
+  <link rel="manifest" href="../../manifest.json">
+  <link rel="icon" href="../../assets/icons/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../assets/css/global.css">
+</head>
+<body>
+  <header class="topo">
+    <a class="icone-btn" id="btn-voltar" href="../../index.html" aria-label="Voltar ao início" title="Início"></a>
+    <div class="titulo">
+      <strong>Painel de Produtividade</strong>
+      <small id="t-usuario"></small>
+    </div>
+    <a class="icone-btn" id="btn-leitura" href="index.html" aria-label="Ir para a leitura" title="Leitura de QR"></a>
+  </header>
+
+  <main class="conteudo">
+    <form class="cartao" id="filtros">
+      <div class="grade-filtros">
+        <div class="campo"><label for="f-ini">Data inicial</label><input type="date" id="f-ini" required></div>
+        <div class="campo"><label for="f-fim">Data final</label><input type="date" id="f-fim" required></div>
+        <div class="campo"><label for="f-equipe">Equipe</label><select id="f-equipe"><option value="">Todas</option></select></div>
+        <div class="campo"><label for="f-usuario">Usuário</label><select id="f-usuario"><option value="">Todos</option></select></div>
+        <div class="campo"><label for="f-carregamento">Carregamento</label><input id="f-carregamento" inputmode="numeric" placeholder="Todos"></div>
+      </div>
+      <div class="btns mt">
+        <button class="btn" type="submit" id="btn-aplicar">Aplicar filtros</button>
+        <button class="btn secundario" type="button" id="btn-exportar" disabled></button>
+      </div>
+    </form>
+  </main>
+
+  <nav class="abas" id="abas" role="tablist">
+    <button data-aba="prod" role="tab">Produtividade</button>
+    <button data-aba="lanc" role="tab">Lançamentos</button>
+    <button data-aba="leit" role="tab">Leituras</button>
+    <button data-aba="div" role="tab" data-admin hidden>Divergências</button>
+    <button data-aba="importar" role="tab" data-admin hidden>Importar 967</button>
+    <button data-aba="config" role="tab" data-admin hidden>Configurações</button>
+  </nav>
+
+  <main class="conteudo">
+    <div id="status" class="carregando">Escolha o período e toque em "Aplicar filtros".</div>
+
+    <!-- PRODUTIVIDADE -->
+    <section id="aba-prod" hidden>
+      <div class="kpis" id="kpis"></div>
+      <h2>Por equipe</h2>
+      <div class="tabela-wrap"><table class="tabela">
+        <thead><tr><th>Equipe</th><th class="num">Carregamentos</th><th class="num">Peso total (kg)</th><th class="num">Leituras</th><th class="num">Tempo total</th><th class="num">Tempo médio / carreg.</th><th class="num">Sem 967</th></tr></thead>
+        <tbody id="tb-equipes"></tbody>
+      </table></div>
+      <h2 class="mt">Por usuário</h2>
+      <div class="tabela-wrap"><table class="tabela">
+        <thead><tr><th>Usuário</th><th>Equipe(s)</th><th class="num">Carregamentos</th><th class="num">Peso (kg)</th><th class="num">Leituras</th><th class="num">Tempo total</th><th class="num">Tempo médio / carreg.</th></tr></thead>
+        <tbody id="tb-usuarios"></tbody>
+      </table></div>
+      <p class="suave"><small>Tempo = entre a primeira e a última leitura de cada carregamento. No painel por usuário, o peso de um carregamento conta para cada pessoa que participou dele.</small></p>
+    </section>
+
+    <!-- LANÇAMENTOS (cruzamento com a 967) -->
+    <section id="aba-lanc" hidden>
+      <div class="tabela-wrap"><table class="tabela">
+        <thead><tr><th>Carregamento</th><th>Destino</th><th>Rota</th><th class="num">Peso (kg)</th><th>Box</th><th>Equipe</th><th>Usuário(s)</th><th class="num">Leituras</th><th>Início</th><th>Última leitura</th><th class="num">Duração</th><th>967</th></tr></thead>
+        <tbody id="tb-lanc"></tbody>
+      </table></div>
+    </section>
+
+    <!-- LEITURAS -->
+    <section id="aba-leit" hidden>
+      <p class="suave" id="leit-info"></p>
+      <div class="tabela-wrap"><table class="tabela">
+        <thead><tr><th>Data/hora</th><th>Carregamento</th><th>Box</th><th>Transação</th><th>Usuário</th><th>Equipe</th><th></th></tr></thead>
+        <tbody id="tb-leit"></tbody>
+      </table></div>
+    </section>
+
+    <!-- DIVERGÊNCIAS -->
+    <section id="aba-div" hidden>
+      <h2>Lidos que não existem na 967</h2>
+      <div class="tabela-wrap"><table class="tabela">
+        <thead><tr><th>Carregamento</th><th>Equipe</th><th>Usuário(s)</th><th class="num">Leituras</th><th>Início</th></tr></thead>
+        <tbody id="tb-div-fora"></tbody>
+      </table></div>
+      <h2 class="mt">Na 967 e nenhuma equipe lançou</h2>
+      <p class="suave" id="div-nao-info"></p>
+      <div class="tabela-wrap"><table class="tabela">
+        <thead><tr><th>Carregamento</th><th>Destino</th><th>Rota</th><th class="num">Peso (kg)</th><th>Data</th></tr></thead>
+        <tbody id="tb-div-nao"></tbody>
+      </table></div>
+    </section>
+
+    <!-- IMPORTAR 967 -->
+    <section id="aba-importar" hidden>
+      <div class="cartao">
+        <h2>Importar rotina 967 (Winthor)</h2>
+        <p class="suave">Selecione o arquivo .xls ou .xlsx exportado. Reimportar atualiza os carregamentos que já existem, sem duplicar.</p>
+        <div class="campo">
+          <label for="imp-arquivo">Arquivo</label>
+          <input type="file" id="imp-arquivo" accept=".xls,.xlsx,.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv">
+        </div>
+      </div>
+
+      <div class="cartao" id="imp-config" hidden>
+        <h3>Colunas da planilha</h3>
+        <p class="suave">O app tenta reconhecer as colunas sozinho. Confira e ajuste se precisar.</p>
+        <div class="grade-filtros">
+          <div class="campo"><label for="imp-planilha">Planilha (aba)</label><select id="imp-planilha"></select></div>
+          <div class="campo"><label for="imp-linha">Linha do cabeçalho</label><input type="number" id="imp-linha" min="1"></div>
+          <div class="campo"><label for="imp-col-carregamento">Nº do carregamento *</label><select id="imp-col-carregamento" data-col="carregamento"></select></div>
+          <div class="campo"><label for="imp-col-destino">Destino</label><select id="imp-col-destino" data-col="destino"></select></div>
+          <div class="campo"><label for="imp-col-rota">Rota</label><select id="imp-col-rota" data-col="rota"></select></div>
+          <div class="campo"><label for="imp-col-peso">Peso</label><select id="imp-col-peso" data-col="peso"></select></div>
+          <div class="campo"><label for="imp-col-data">Data do carregamento</label><select id="imp-col-data" data-col="data"></select></div>
+          <div class="campo"><label for="imp-data-padrao">Data (quando não há coluna)</label><input type="date" id="imp-data-padrao"></div>
+          <div class="campo">
+            <label for="imp-ignorar">Não importar estes destinos</label>
+            <input id="imp-ignorar" value="VENDA BALCAO">
+            <span class="ajuda">Separe por vírgula. Ex.: vendas no balcão, que não passam pelas equipes.</span>
+          </div>
+        </div>
+        <label class="check mt"><input type="checkbox" id="imp-somar" checked> Somar o peso quando o mesmo carregamento aparece em várias linhas</label>
+      </div>
+
+      <div class="cartao" id="imp-previa-box" hidden>
+        <h3>Prévia</h3>
+        <div class="kpis" id="imp-resumo"></div>
+        <div class="tabela-wrap"><table class="tabela">
+          <thead><tr><th>Carregamento</th><th>Destino</th><th>Rota</th><th class="num">Peso (kg)</th><th>Data</th><th>Situação</th></tr></thead>
+          <tbody id="imp-previa"></tbody>
+        </table></div>
+        <div class="btns mt">
+          <button class="btn sucesso" type="button" id="imp-confirmar">Confirmar importação</button>
+          <button class="btn secundario" type="button" id="imp-cancelar">Cancelar</button>
+        </div>
+        <div id="imp-status" class="mt"></div>
+      </div>
+    </section>
+
+    <!-- CONFIGURAÇÕES -->
+    <section id="aba-config" hidden>
+      <div class="cartao">
+        <h2>Regras de leitura</h2>
+        <label class="check"><input type="checkbox" id="cfg-multiplas"> Permitir que duas equipes trabalhem no mesmo carregamento</label>
+        <p class="suave">Desligado: a segunda equipe é <b>bloqueada</b> com a mensagem "Carregamento já iniciado pela Equipe X".<br>
+          Ligado: a leitura é aceita, mas a equipe recebe o <b>aviso</b>.</p>
+        <button class="btn" type="button" id="cfg-salvar">Salvar</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script type="module" src="../../assets/js/pwa.js"></script>
+  <script type="module" src="painel.js"></script>
+</body>
+</html>

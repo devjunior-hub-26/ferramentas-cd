@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0A1F44">
+  <title>Usuários e Equipes · Ferramentas do CD</title>
+  <link rel="manifest" href="../../manifest.json">
+  <link rel="icon" href="../../assets/icons/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../assets/css/global.css">
+  <style>
+    .grade-equipes { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
+    .equipe-cartao { margin-bottom: 0; }
+    .equipe-cartao.inativa { opacity: .6; }
+    .membro { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--borda); flex-wrap: wrap; }
+    .membro:last-child { border-bottom: none; }
+    .membro select { min-height: 44px; border: 2px solid var(--borda); border-radius: 10px; padding: 0 8px; font: inherit; color: var(--texto); max-width: 170px; }
+    .add-membro { display: flex; gap: 8px; margin-top: 10px; }
+    .add-membro select { flex: 1; min-width: 0; }
+  </style>
+</head>
+<body>
+  <header class="topo">
+    <a class="icone-btn" id="btn-voltar" href="../../index.html" aria-label="Voltar ao início" title="Início"></a>
+    <div class="titulo">
+      <strong>Usuários e Equipes</strong>
+      <small id="t-usuario"></small>
+    </div>
+  </header>
+
+  <nav class="abas" id="abas" role="tablist">
+    <button data-aba="usuarios" role="tab">Usuários</button>
+    <button data-aba="equipes" role="tab">Equipes</button>
+    <button data-aba="historico" role="tab">Histórico</button>
+  </nav>
+
+  <main class="conteudo">
+    <!-- USUÁRIOS -->
+    <section id="aba-usuarios">
+      <div class="linha entre">
+        <input class="entrada" id="busca-usuario" placeholder="Buscar por nome ou login" style="flex:1;min-width:200px">
+        <button class="btn secundario" id="btn-importar-colab">Importar colaboradores</button>
+        <button class="btn" id="btn-novo-usuario">+ Novo usuário</button>
+      </div>
+      <div class="tabela-wrap mt"><table class="tabela">
+        <thead><tr><th>Nome</th><th>Login</th><th>Perfil</th><th>Equipe atual</th><th>Situação</th><th></th></tr></thead>
+        <tbody id="tb-usuarios"><tr><td colspan="6" class="carregando">Carregando...</td></tr></tbody>
+      </table></div>
+    </section>
+
+    <!-- EQUIPES -->
+    <section id="aba-equipes" hidden>
+      <div class="linha entre" style="margin-bottom:14px">
+        <label class="check"><input type="checkbox" id="mostrar-inativas"> Mostrar equipes inativas</label>
+        <button class="btn" id="btn-nova-equipe">+ Nova equipe</button>
+      </div>
+      <div class="aviso info">Mudanças de equipe valem só para as <b>próximas</b> leituras. As leituras antigas continuam na equipe em que a pessoa estava.</div>
+      <div id="sem-equipe" class="cartao" hidden></div>
+      <div id="lista-equipes" class="grade-equipes"></div>
+    </section>
+
+    <!-- HISTÓRICO -->
+    <section id="aba-historico" hidden>
+      <div class="grade-filtros">
+        <div class="campo"><label for="hist-usuario">Usuário</label><select id="hist-usuario"></select></div>
+        <div class="campo"><label for="hist-equipe">Equipe</label><select id="hist-equipe"></select></div>
+      </div>
+      <div class="tabela-wrap mt"><table class="tabela">
+        <thead><tr><th>Usuário</th><th>Equipe</th><th>Entrou em</th><th>Saiu em</th><th>Alterado por</th></tr></thead>
+        <tbody id="tb-historico"></tbody>
+      </table></div>
+    </section>
+  </main>
+
+  <dialog class="modal" id="modal-usuario">
+    <form method="dialog">
+      <div class="modal-topo" id="mu-titulo">Novo usuário</div>
+      <div class="modal-corpo">
+        <div class="campo"><label>Nome</label><input name="nome" required maxlength="80"></div>
+        <div class="campo">
+          <label>Login (usuário)</label>
+          <input name="login" required pattern="[a-zA-Z0-9._\-]{3,40}" autocapitalize="none" autocorrect="off" spellcheck="false">
+          <span class="ajuda">3 a 40 caracteres: letras, números, ponto, hífen ou _. Ex.: joao.silva ou a matrícula.</span>
+        </div>
+        <div class="campo">
+          <label id="mu-senha-rotulo">Senha</label>
+          <input name="senha" type="text" minlength="6" autocomplete="new-password">
+          <span class="ajuda" id="mu-senha-ajuda">Mínimo 6 caracteres.</span>
+        </div>
+        <div class="campo">
+          <label>Perfil</label>
+          <select name="perfil" required>
+            <option value="carregador">Carregador</option>
+            <option value="lider">Líder</option>
+            <option value="admin">Administrador</option>
+          </select>
+        </div>
+        <label class="check" id="mu-ativo-box"><input type="checkbox" name="ativo" value="1"> Usuário ativo</label>
+      </div>
+      <div class="modal-rodape">
+        <button type="button" class="btn secundario" data-cancelar>Cancelar</button>
+        <button type="submit" class="btn">Salvar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="modal" id="modal-colab">
+    <form method="dialog">
+      <div class="modal-topo">Importar colaboradores</div>
+      <div class="modal-corpo">
+        <p class="suave" style="margin-top:0">No Excel, selecione as colunas <b>Matrícula, Nome e Função</b> (com ou sem o cabeçalho), copie (Ctrl+C) e cole aqui.</p>
+        <div class="campo">
+          <textarea name="lista" rows="9" required class="entrada" style="width:100%;font-family:monospace;font-size:.85rem" placeholder="10002070	ALAN PEREIRA DA SILVA	AUXILIAR DE EMBARQUE"></textarea>
+        </div>
+        <ul class="suave" style="margin:0;padding-left:18px;font-size:.9rem">
+          <li>O login de cada pessoa é a <b>matrícula</b>; a senha inicial é gerada na hora (6 números).</li>
+          <li>Função com Líder, Encarregado ou Supervisor vira perfil <b>Líder</b>; as outras, <b>Carregador</b>.</li>
+          <li>Matrículas já cadastradas são puladas.</li>
+        </ul>
+      </div>
+      <div class="modal-rodape">
+        <button type="button" class="btn secundario" data-cancelar>Cancelar</button>
+        <button type="submit" class="btn">Cadastrar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="modal" id="modal-senhas">
+    <form method="dialog">
+      <div class="modal-topo">Colaboradores cadastrados</div>
+      <div class="modal-corpo">
+        <div class="aviso alerta" style="margin-top:0">Anote ou baixe agora: <b>as senhas não aparecem de novo</b>. Depois, entregue a cada pessoa a sua.</div>
+        <div id="senhas-resumo" class="suave"></div>
+        <div class="tabela-wrap mt"><table class="tabela">
+          <thead><tr><th>Matrícula</th><th>Senha</th><th>Nome</th><th>Perfil</th></tr></thead>
+          <tbody id="tb-senhas"></tbody>
+        </table></div>
+      </div>
+      <div class="modal-rodape">
+        <button type="button" class="btn secundario" id="btn-baixar-senhas">Baixar lista</button>
+        <button type="submit" class="btn">Fechar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="modal" id="modal-equipe">
+    <form method="dialog">
+      <div class="modal-topo" id="me-titulo">Nova equipe</div>
+      <div class="modal-corpo">
+        <div class="campo"><label>Nome da equipe</label><input name="nome" required maxlength="60" placeholder="Ex.: Equipe A"></div>
+        <div class="campo">
+          <label>Líder</label>
+          <select name="lider_id"></select>
+          <span class="ajuda">Somente usuários com perfil Líder. O líder também passa a fazer parte da equipe.</span>
+        </div>
+      </div>
+      <div class="modal-rodape">
+        <button type="button" class="btn secundario" data-cancelar>Cancelar</button>
+        <button type="submit" class="btn">Salvar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script type="module" src="../../assets/js/pwa.js"></script>
+  <script type="module" src="admin.js"></script>
+</body>
+</html>
