@@ -38,6 +38,7 @@
   <nav class="abas" id="abas" role="tablist">
     <button data-aba="prod" role="tab">Produtividade</button>
     <button data-aba="lanc" role="tab">Lançamentos</button>
+    <button data-aba="carr" role="tab">Carregamentos</button>
     <button data-aba="leit" role="tab">Leituras</button>
     <button data-aba="div" role="tab" data-admin hidden>Divergências</button>
     <button data-aba="importar" role="tab" data-admin hidden>Importar 967</button>
@@ -52,21 +53,29 @@
       <div class="kpis" id="kpis"></div>
       <h2>Por equipe</h2>
       <div class="tabela-wrap"><table class="tabela">
-        <thead><tr><th>Equipe</th><th class="num">Carregamentos</th><th class="num">Peso total (kg)</th><th class="num">Leituras</th><th class="num">Tempo total</th><th class="num">Tempo médio / carreg.</th><th class="num">Sem 967</th></tr></thead>
+        <thead><tr><th>Equipe</th><th class="num">Lançamentos</th><th class="num">Carregamentos</th><th class="num">Peso total (kg)</th><th class="num">Leituras</th><th class="num">Tempo total</th><th class="num">Tempo médio / lançamento</th><th class="num">Sem 967</th></tr></thead>
         <tbody id="tb-equipes"></tbody>
       </table></div>
       <h2 class="mt">Por usuário</h2>
       <div class="tabela-wrap"><table class="tabela">
-        <thead><tr><th>Usuário</th><th>Equipe(s)</th><th class="num">Carregamentos</th><th class="num">Peso (kg)</th><th class="num">Leituras</th><th class="num">Tempo total</th><th class="num">Tempo médio / carreg.</th></tr></thead>
+        <thead><tr><th>Usuário</th><th>Equipe(s)</th><th class="num">Lançamentos</th><th class="num">Carregamentos</th><th class="num">Peso (kg)</th><th class="num">Leituras</th><th class="num">Tempo total</th><th class="num">Tempo médio / lançamento</th></tr></thead>
         <tbody id="tb-usuarios"></tbody>
       </table></div>
-      <p class="suave"><small>Tempo = entre a primeira e a última leitura de cada carregamento. No painel por usuário, o peso de um carregamento conta para cada pessoa que participou dele.</small></p>
+      <p class="suave"><small>Tempo de um lançamento = de quando o lançamento anterior foi salvo até quando este foi salvo (mesma equipe, mesmo dia). No primeiro lançamento do dia, conta da primeira leitura até salvar. Por usuário, a conta usa os lançamentos da própria pessoa.</small></p>
     </section>
 
-    <!-- LANÇAMENTOS (cruzamento com a 967) -->
+    <!-- LANÇAMENTOS (um por caminhão) -->
     <section id="aba-lanc" hidden>
       <div class="tabela-wrap"><table class="tabela">
-        <thead><tr><th>Carregamento</th><th>Destino</th><th>Rota</th><th class="num">Peso (kg)</th><th>Box</th><th>Equipe</th><th>Usuário(s)</th><th class="num">Leituras</th><th>Início</th><th>Última leitura</th><th class="num">Duração</th><th>967</th></tr></thead>
+        <thead><tr><th>Salvo em</th><th>Equipe</th><th>Usuário</th><th class="num">Carreg.</th><th>Carregamentos</th><th>Destinos</th><th class="num">Peso (kg)</th><th class="num">Leituras</th><th class="num">Tempo</th></tr></thead>
+        <tbody id="tb-lancamentos"></tbody>
+      </table></div>
+    </section>
+
+    <!-- CARREGAMENTOS (cruzamento com a 967) -->
+    <section id="aba-carr" hidden>
+      <div class="tabela-wrap"><table class="tabela">
+        <thead><tr><th>Carregamento</th><th>Destino</th><th>Rota</th><th class="num">Peso (kg)</th><th>Box</th><th>Equipe</th><th>Usuário(s)</th><th class="num">Leituras</th><th>Primeira leitura</th><th>Última leitura</th><th>967</th></tr></thead>
         <tbody id="tb-lanc"></tbody>
       </table></div>
     </section>

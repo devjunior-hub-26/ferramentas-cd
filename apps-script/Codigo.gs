@@ -31,7 +31,10 @@ const TABELAS = {
   Membros: ['id', 'equipe_id', 'usuario_id', 'inicio', 'fim', 'alterado_por'],
   Leituras: ['id', 'carregamento', 'box', 'transacao', 'usuario_id', 'usuario_nome', 'equipe_id', 'equipe_nome',
     'lido_em', 'recebido_em', 'primeira_do_carregamento', 'aviso', 'cancelada', 'motivo_cancelamento',
-    'corrigido_por', 'corrigido_em'],
+    'corrigido_por', 'corrigido_em', 'lancamento_id'],
+  // Lançamento = um caminhão: várias leituras, de vários carregamentos, salvas juntas
+  Lancamentos: ['id', 'usuario_id', 'usuario_nome', 'equipe_id', 'equipe_nome', 'iniciado_em', 'salvo_em',
+    'recebido_em', 'qtd_leituras', 'carregamentos'],
   Carregamentos967: ['numero', 'destino', 'rota', 'peso', 'data_ref', 'importado_em', 'importado_por'],
   Config: ['chave', 'valor'],
   Sessoes: ['token_hash', 'usuario_id', 'criado_em', 'expira_em'],
@@ -85,7 +88,8 @@ const ACOES = {
 
   // Leitura de QR Code
   minhaEquipe: { fn: acaoMinhaEquipe },
-  registrarLeitura: { fn: acaoRegistrarLeitura },
+  conferirLeitura: { fn: acaoConferirLeitura },
+  registrarLancamento: { fn: acaoRegistrarLancamento },
   minhasLeituras: { fn: acaoMinhasLeituras },
   leiturasEquipe: { perfis: ['admin', 'lider'], fn: acaoLeiturasEquipe },
   corrigirLeitura: { perfis: ['admin', 'lider'], fn: acaoCorrigirLeitura },
@@ -388,6 +392,7 @@ function leituraPublica(l) {
     equipe_id: l.equipe_id, equipe_nome: nomeEquipeAtual(l.equipe_id, l.equipe_nome),
     lido_em: l.lido_em, primeira_do_carregamento: sim(l.primeira_do_carregamento), aviso: l.aviso || null,
     cancelada: sim(l.cancelada), motivo_cancelamento: l.motivo_cancelamento || null, corrigido_em: l.corrigido_em || null,
+    lancamento_id: l.lancamento_id || null,
   };
 }
 
@@ -402,55 +407,168 @@ function acaoMinhaEquipe(d, u) {
   };
 }
 
-function acaoRegistrarLeitura(d, u) {
-  const carregamento = String(d.carregamento || '').trim();
-  const box = String(d.box || '').trim();
-  const transacao = String(d.transacao || '').trim();
-  const id = String(d.client_id || '').trim().toLowerCase();
-  if (!RE_NUM20.test(carregamento) || !RE_NUM10.test(box) || !RE_NUM20.test(transacao)) {
+function validarLeitura(d) {
+  const l = {
+    carregamento: String(d.carregamento || '').trim(),
+    box: String(d.box || '').trim(),
+    transacao: String(d.transacao || '').trim(),
+  };
+  if (!RE_NUM20.test(l.carregamento) || !RE_NUM10.test(l.box) || !RE_NUM20.test(l.transacao)) {
     throw new ErroApp('FORMATO_INVALIDO', 'Formato esperado: carregamento|box|transação (somente números).');
   }
-  if (!RE_UUID.test(id)) throw new ErroApp('FORMATO_INVALIDO', 'Identificador da leitura inválido.');
+  return l;
+}
 
-  // Hora da leitura: aceita a do celular (leituras offline), com limites
-  const agora = new Date();
-  let lido = d.lido_em ? new Date(d.lido_em) : agora;
-  if (isNaN(lido.getTime()) || lido.getTime() > agora.getTime() + 10 * 60000) lido = agora;
-  if (lido.getTime() < agora.getTime() - 7 * 86400000) {
+/** Hora informada pelo celular (vale para leituras feitas offline), com limites. */
+function horaDoCelular(valor, agora) {
+  let t = valor ? new Date(valor) : agora;
+  if (isNaN(t.getTime()) || t.getTime() > agora.getTime() + 10 * 60000) t = agora;
+  if (t.getTime() < agora.getTime() - 7 * 86400000) {
     throw new ErroApp('LEITURA_ANTIGA', 'Leituras com mais de 7 dias não podem ser enviadas.');
   }
+  return t;
+}
+
+/** Destino do carregamento na 967 (para mostrar a cidade na hora da leitura). */
+function destino967(carregamento) {
+  const c = buscar('Carregamentos967', 'numero', carregamento)[0];
+  return c ? c.destino || null : null;
+}
+
+/**
+ * Confere uma leitura SEM gravar, para avisar na hora enquanto o lançamento
+ * está aberto. A conferência que vale é a do registrarLancamento.
+ */
+function acaoConferirLeitura(d, u) {
+  const l = validarLeitura(d);
+  const equipeId = equipeNoMomento(u.id, agoraISO());
+  if (!equipeId) throw new ErroApp('SEM_EQUIPE', 'Você não está em nenhuma equipe. Procure o administrador.');
+  if (buscar('Leituras', 'transacao', l.transacao).some((x) => !sim(x.cancelada))) {
+    throw new ErroApp('TRANSACAO_DUPLICADA', 'Esta transação já foi registrada anteriormente (por você ou por outro usuário).');
+  }
+  const doCarregamento = buscar('Leituras', 'carregamento', l.carregamento).filter((x) => !sim(x.cancelada));
+  const outra = doCarregamento.filter((x) => x.equipe_id !== equipeId)
+    .sort((a, b) => (a.lido_em < b.lido_em ? -1 : 1))[0];
+  let aviso = null;
+  if (outra) {
+    const nomeOutra = nomeEquipeAtual(outra.equipe_id, outra.equipe_nome);
+    if (!permitirMultiplas()) throw new ErroApp('OUTRA_EQUIPE', 'Carregamento já iniciado pela ' + nomeOutra + '.', nomeOutra);
+    aviso = 'OUTRA_EQUIPE:' + nomeOutra;
+  }
+  return {
+    primeira: !doCarregamento.some((x) => x.equipe_id === equipeId),
+    aviso: aviso,
+    destino: destino967(l.carregamento),
+  };
+}
+
+function lancamentoPublico(l) {
+  const us = ler('Usuarios').find((x) => x.id === l.usuario_id);
+  return {
+    id: l.id, usuario_id: l.usuario_id, usuario_nome: us ? us.nome : l.usuario_nome,
+    equipe_id: l.equipe_id, equipe_nome: nomeEquipeAtual(l.equipe_id, l.equipe_nome),
+    iniciado_em: l.iniciado_em, salvo_em: l.salvo_em, qtd_leituras: Number(l.qtd_leituras || 0),
+  };
+}
+
+/**
+ * Salva um lançamento (um caminhão) com todas as leituras de uma vez.
+ * Tudo ou nada: se alguma leitura for recusada, nada é gravado e a resposta
+ * lista as recusadas, para o carregador tirar e salvar de novo.
+ */
+function acaoRegistrarLancamento(d, u) {
+  const id = String(d.id || '').trim().toLowerCase();
+  if (!RE_UUID.test(id)) throw new ErroApp('FORMATO_INVALIDO', 'Identificador do lançamento inválido.');
+  const lista = (d.leituras || []).slice().sort((a, b) => (String(a.lido_em) < String(b.lido_em) ? -1 : 1));
+  if (!lista.length) throw new ErroApp('DADOS_INVALIDOS', 'O lançamento não tem leituras.');
+  if (lista.length > 3000) throw new ErroApp('DADOS_INVALIDOS', 'Lançamento grande demais (máximo 3.000 leituras).');
+  const agora = new Date();
 
   return comTrava(() => {
-    // Reenvio de uma leitura que já chegou (resposta perdida com sinal fraco)
-    const jaChegou = buscar('Leituras', 'id', id)[0];
-    if (jaChegou) return leituraPublica(jaChegou);
+    // Reenvio de um lançamento que já chegou (resposta perdida com sinal fraco)
+    const ja = buscar('Lancamentos', 'id', id)[0];
+    if (ja) return { lancamento: lancamentoPublico(ja), leituras: buscar('Leituras', 'lancamento_id', id).map(leituraPublica) };
 
-    const equipeId = equipeNoMomento(u.id, lido.toISOString());
+    const inicio = horaDoCelular(lista[0].lido_em, agora);
+    const equipeId = equipeNoMomento(u.id, inicio.toISOString());
     if (!equipeId) throw new ErroApp('SEM_EQUIPE', 'Você não está em nenhuma equipe. Procure o administrador.');
+    const nomeEquipe = nomeEquipeAtual(equipeId);
+    const multiplas = permitirMultiplas();
 
-    if (buscar('Leituras', 'transacao', transacao).some((l) => !sim(l.cancelada))) {
-      throw new ErroApp('TRANSACAO_DUPLICADA', 'Esta transação já foi registrada anteriormente (por você ou por outro usuário).');
+    // Uma leitura de colunas inteiras é bem mais rápida que uma busca por leitura
+    const colTransacao = coluna('Leituras', 'transacao');
+    const colCarregamento = coluna('Leituras', 'carregamento');
+    const colEquipe = coluna('Leituras', 'equipe_id');
+    const colNomeEquipe = coluna('Leituras', 'equipe_nome');
+    const colLido = coluna('Leituras', 'lido_em');
+    const colCancelada = coluna('Leituras', 'cancelada');
+    const noLote = {};
+    lista.forEach((x) => { noLote[String(x.carregamento || '').trim()] = true; });
+    const transacoesUsadas = {};
+    const carregamentos = {}; // número → { outra: nome da 1ª outra equipe, daEquipe: já tem leitura desta equipe }
+    colTransacao.forEach((t, i) => {
+      if (colCancelada[i] === SIM) return;
+      transacoesUsadas[t] = true;
+      const c = colCarregamento[i];
+      if (!noLote[c]) return;
+      const info = carregamentos[c] || (carregamentos[c] = { outra: null, outraEm: '', daEquipe: false });
+      if (colEquipe[i] === equipeId) info.daEquipe = true;
+      else if (!info.outra || colLido[i] < info.outraEm) {
+        info.outra = nomeEquipeAtual(colEquipe[i], colNomeEquipe[i]);
+        info.outraEm = colLido[i];
+      }
+    });
+
+    const erros = [];
+    const leituras = [];
+    const noLancamento = {};
+    lista.forEach((x) => {
+      const falha = (codigo, msg) => erros.push({ client_id: x.client_id, transacao: x.transacao, erro: codigo, msg: msg });
+      let l;
+      let lido;
+      try {
+        l = validarLeitura(x);
+        lido = horaDoCelular(x.lido_em, agora);
+      } catch (e) {
+        return falha(e.codigo, e.message);
+      }
+      const cid = String(x.client_id || '').trim().toLowerCase();
+      if (!RE_UUID.test(cid)) return falha('FORMATO_INVALIDO', 'Identificador da leitura inválido.');
+      if (noLancamento[l.transacao]) return falha('TRANSACAO_DUPLICADA', 'Transação lida duas vezes neste lançamento.');
+      noLancamento[l.transacao] = true;
+      if (transacoesUsadas[l.transacao]) return falha('TRANSACAO_DUPLICADA', 'Transação ' + l.transacao + ' já registrada anteriormente.');
+      const info = carregamentos[l.carregamento] || (carregamentos[l.carregamento] = { outra: null, daEquipe: false });
+      let aviso = '';
+      if (info.outra) {
+        if (!multiplas) return falha('OUTRA_EQUIPE', 'Carregamento ' + l.carregamento + ' já iniciado pela ' + info.outra + '.');
+        aviso = 'OUTRA_EQUIPE:' + info.outra;
+      }
+      leituras.push({
+        id: cid, carregamento: l.carregamento, box: l.box, transacao: l.transacao,
+        usuario_id: u.id, usuario_nome: u.nome, equipe_id: equipeId, equipe_nome: nomeEquipe,
+        lido_em: lido.toISOString(), recebido_em: agora.toISOString(),
+        primeira_do_carregamento: info.daEquipe ? NAO : SIM,
+        aviso: aviso, cancelada: NAO, lancamento_id: id,
+      });
+      info.daEquipe = true;
+    });
+    if (erros.length) {
+      throw new ErroApp('LANCAMENTO_RECUSADO', erros.length + ' leitura(s) recusada(s). Tire essas leituras e salve de novo.', erros);
     }
 
-    const doCarregamento = buscar('Leituras', 'carregamento', carregamento).filter((l) => !sim(l.cancelada));
-    const outra = doCarregamento.filter((l) => l.equipe_id !== equipeId)
-      .sort((a, b) => (a.lido_em < b.lido_em ? -1 : 1))[0];
-    let aviso = '';
-    if (outra) {
-      const nomeOutra = nomeEquipeAtual(outra.equipe_id, outra.equipe_nome);
-      if (!permitirMultiplas()) throw new ErroApp('OUTRA_EQUIPE', 'Carregamento já iniciado pela ' + nomeOutra + '.', nomeOutra);
-      aviso = 'OUTRA_EQUIPE:' + nomeOutra;
-    }
-
-    const linha = {
-      id: id, carregamento: carregamento, box: box, transacao: transacao,
-      usuario_id: u.id, usuario_nome: u.nome, equipe_id: equipeId, equipe_nome: nomeEquipeAtual(equipeId),
-      lido_em: lido.toISOString(), recebido_em: agora.toISOString(),
-      primeira_do_carregamento: doCarregamento.some((l) => l.equipe_id === equipeId) ? NAO : SIM,
-      aviso: aviso, cancelada: NAO,
+    let salvo = horaDoCelular(d.salvo_em, agora).toISOString();
+    const ultima = leituras[leituras.length - 1].lido_em;
+    if (salvo < ultima) salvo = ultima;
+    const ordem = [];
+    leituras.forEach((l) => { if (ordem.indexOf(l.carregamento) < 0) ordem.push(l.carregamento); });
+    const lanc = {
+      id: id, usuario_id: u.id, usuario_nome: u.nome, equipe_id: equipeId, equipe_nome: nomeEquipe,
+      iniciado_em: leituras[0].lido_em, salvo_em: salvo, recebido_em: agora.toISOString(),
+      qtd_leituras: String(leituras.length), carregamentos: ordem.join(', '),
     };
-    inserir('Leituras', [linha]);
-    return leituraPublica(linha);
+    inserir('Leituras', leituras);
+    inserir('Lancamentos', [lanc]);
+    return { lancamento: lancamentoPublico(lanc), leituras: leituras.map(leituraPublica) };
   });
 }
 
@@ -562,7 +680,12 @@ function acaoPainelDados(d, u) {
       && !comLeitura[c.numero] && (!d.carregamento || c.numero === d.carregamento))
       .map(registro967).sort((a, b) => (a.numero < b.numero ? -1 : 1));
   }
-  return { leituras: leituras, c967: c967, naoLancados: naoLancados };
+  // Lançamentos do período (sem filtro de usuário/carregamento: o tempo entre
+  // um lançamento e outro da equipe precisa da sequência completa)
+  const lancamentos = ler('Lancamentos').filter((l) => l.salvo_em >= ini && l.salvo_em < fim
+    && (admin || minhas[l.equipe_id]) && (!d.equipe || l.equipe_id === d.equipe)).map(lancamentoPublico);
+
+  return { leituras: leituras, c967: c967, naoLancados: naoLancados, lancamentos: lancamentos };
 }
 
 function acaoSalvarConfig(d) {

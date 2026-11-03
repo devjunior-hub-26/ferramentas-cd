@@ -75,7 +75,7 @@ function senhaInicial() {
 }
 
 /** Linhas "matrícula<TAB>nome<TAB>função" → colaboradores. Ignora o cabeçalho. */
-function lerColaboradores(texto) {
+function lerColaboradores(texto, senhaMatricula) {
   const lista = [];
   const erros = [];
   texto.split(/\r?\n/).forEach((linha, i) => {
@@ -86,7 +86,9 @@ function lerColaboradores(texto) {
       return;
     }
     if (!nome) { erros.push(`Linha ${i + 1}: falta o nome.`); return; }
-    lista.push({ login: mat, nome: nomeProprio(nome), perfil: perfilDaFuncao(funcao), funcao, senha: senhaInicial() });
+    // A senha precisa de 6 caracteres: matrícula curta ganha senha gerada
+    const senha = senhaMatricula && mat.length >= 6 ? mat : senhaInicial();
+    lista.push({ login: mat, nome: nomeProprio(nome), perfil: perfilDaFuncao(funcao), funcao, senha });
   });
   return { lista, erros };
 }
@@ -96,7 +98,7 @@ let ultimasSenhas = [];
 $('#btn-importar-colab').addEventListener('click', async () => {
   const dados = await abrirModal($('#modal-colab'));
   if (!dados) return;
-  const { lista, erros } = lerColaboradores(dados.lista);
+  const { lista, erros } = lerColaboradores(dados.lista, dados.senha_matricula === '1');
   if (erros.length) return toast(erros.slice(0, 3).join(' '), 'erro', 8000);
   if (!lista.length) return toast('Nenhum colaborador encontrado no texto colado.', 'alerta');
   try {

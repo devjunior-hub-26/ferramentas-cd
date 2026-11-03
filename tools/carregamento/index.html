@@ -46,7 +46,7 @@
 
       <div id="resultado" class="resultado">
         <div class="r-titulo">Aponte a câmera para o QR Code</div>
-        <div class="r-msg suave">A leitura é registrada automaticamente.</div>
+        <div class="r-msg suave">Leia todas as etiquetas do caminhão e, no fim, toque em "Salvar lançamento".</div>
       </div>
 
       <div class="acoes-leitura">
@@ -54,10 +54,20 @@
         <button class="btn secundario" id="btn-lanterna" disabled></button>
       </div>
 
+      <!-- Lançamento atual: um caminhão, com leituras de vários carregamentos -->
+      <div class="cartao lanc-atual" id="lanc-atual" hidden>
+        <h3 id="lanc-titulo" style="margin-top:0">Lançamento atual</h3>
+        <div class="chips-carreg" id="lanc-carregamentos"></div>
+        <div class="aviso erro" id="lanc-aviso" hidden></div>
+        <button class="btn sucesso bloco" type="button" id="btn-salvar-lanc">Salvar lançamento</button>
+        <div class="lista-lanc mt" id="tb-lanc-atual"></div>
+        <button class="btn pequeno perigo mt" type="button" id="btn-descartar-lanc">Descartar lançamento</button>
+      </div>
+
       <p class="contador-dia" id="contador-dia"></p>
 
       <div class="cartao" id="problemas" hidden>
-        <h3>Leituras não aceitas pelo servidor</h3>
+        <h3>Lançamentos não aceitos pelo servidor</h3>
         <div id="lista-problemas"></div>
       </div>
     </section>
@@ -65,6 +75,7 @@
     <!-- MINHAS LEITURAS -->
     <section id="aba-minhas" hidden>
       <div class="kpis">
+        <div class="kpi"><div class="rotulo">Lançamentos hoje</div><div class="valor" id="k-lancamentos">0</div></div>
         <div class="kpi"><div class="rotulo">Leituras hoje</div><div class="valor" id="k-leituras">0</div></div>
         <div class="kpi"><div class="rotulo">Carregamentos</div><div class="valor" id="k-carregamentos">0</div></div>
         <div class="kpi"><div class="rotulo">Não enviadas</div><div class="valor" id="k-pendentes">0</div></div>

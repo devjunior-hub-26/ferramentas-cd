@@ -95,7 +95,7 @@ Teste no computador com o `INICIAR-TESTE.bat`: entre com o login e a senha do pa
 ### 7. Primeiro uso
 
 1. Abra o site no computador e entre com o login de administrador.
-2. **Usuários e Equipes → Usuários → Importar colaboradores**: cole do Excel as colunas Matrícula, Nome e Função. O login de cada pessoa é a matrícula e a senha inicial (6 números) aparece na tela uma única vez: use **Baixar lista** e entregue a cada um a sua. Líderes que não estiverem na lista podem ser criados em **+ Novo usuário**.
+2. **Usuários e Equipes → Usuários → Importar colaboradores**: cole do Excel as colunas Matrícula, Nome e Função. O login de cada pessoa é a matrícula e, com a opção **Senha inicial igual à matrícula** (já vem marcada), a senha também. Sem a opção, a senha é gerada na hora e aparece uma única vez: use **Baixar lista**. Líderes que não estiverem na lista podem ser criados em **+ Novo usuário**.
 3. **Equipes**: crie as equipes, escolha o líder e adicione as pessoas.
 4. **Painel de Produtividade → Importar 967**: importe a planilha do Winthor.
 5. No celular de um carregador: abra o endereço no Chrome (Android) ou Safari (iPhone), entre e use **Adicionar à tela inicial** para instalar.
@@ -128,11 +128,16 @@ Altere os arquivos, envie ao GitHub e **aumente `VERSAO` no `sw.js`** (ex.: `v2.
 - Trocar a senha ou desativar um usuário desconecta os celulares dele.
 - Cada celular fica logado por até 60 dias (`DIAS_SESSAO` no `Codigo.gs`).
 
-### Leitura do QR Code
+### Leitura do QR Code e lançamentos
+
+Um **lançamento** é um caminhão. Como um caminhão leva vários carregamentos (de várias cidades), o carregador lê as etiquetas de todos eles e, no fim, toca em **Salvar lançamento**.
 
 - Formato: `carregamento|box|transação` (ex.: `3354419|3|2734182`), os três numéricos.
-- Leitura inválida → aviso vermelho, som de erro e nada é registrado.
-- Leitura válida → vibração, bipe e cartão verde. A primeira leitura de um carregamento pela equipe mostra **INÍCIO DO CARREGAMENTO**.
+- Leitura inválida → aviso vermelho, som de erro e nada entra no lançamento.
+- Leitura válida → vibração, bipe e a leitura entra no **lançamento atual**, que mostra cada carregamento com a cidade (da 967) e quantas leituras teve. A primeira leitura de um carregamento pela equipe mostra **INÍCIO DO CARREGAMENTO**.
+- Com sinal, o servidor confere cada leitura na hora (transação repetida, carregamento de outra equipe). Uma leitura recusada fica vermelha e precisa ser tirada (botão **Tirar**) antes de salvar.
+- **Salvar lançamento** grava tudo de uma vez. Se alguma leitura for recusada nesse momento, nada é gravado e ela fica marcada para tirar.
+- O lançamento aberto fica guardado no celular: fechar o app ou ficar sem bateria não perde as leituras.
 - A mesma transação não pode ser lida duas vezes (verificado no celular e no servidor).
 - Se a etiqueta estiver danificada, o botão **Digitar** permite informar os números à mão.
 - A equipe **não é escolhida pelo carregador**: o servidor grava a equipe em que ele estava no momento da leitura (pelo histórico de composição). Sem equipe, a leitura é bloqueada com "Você não está em nenhuma equipe. Procure o administrador."
@@ -147,9 +152,9 @@ Fica a critério do Admin, em **Painel → Configurações**:
 ### Sem sinal (offline)
 
 - O app abre mesmo sem internet (arquivos guardados pelo service worker).
-- Leituras feitas sem sinal ficam no celular (IndexedDB) como **pendentes**. O número aparece no topo da tela.
-- Quando a conexão volta, elas são enviadas sozinhas (a cada 20 s, ao voltar o sinal e ao abrir o app), com a hora real da leitura. Se uma resposta se perder no caminho, o reenvio não duplica a leitura.
-- Se o servidor recusar alguma (ex.: carregamento de outra equipe), ela aparece em **Leituras não aceitas pelo servidor**, com opção de tentar de novo ou descartar.
+- Lançamentos salvos sem sinal ficam no celular (IndexedDB) como **pendentes**. O número aparece no topo da tela.
+- Quando a conexão volta, eles são enviados sozinhos (a cada 20 s, ao voltar o sinal e ao abrir o app), com a hora real das leituras e do salvamento. Se uma resposta se perder no caminho, o reenvio não duplica nada.
+- Se o servidor recusar alguma leitura (ex.: carregamento de outra equipe), o lançamento aparece em **Lançamentos não aceitos pelo servidor**, com as leituras recusadas e as opções **Tirar recusadas e reenviar** ou **Descartar**.
 - O primeiro login em cada celular precisa de internet.
 
 ### Importação da 967
@@ -171,8 +176,11 @@ Outras exportações também funcionam: a tela reconhece nomes comuns (ex.: `NUM
 
 Filtros por período, equipe, usuário e carregamento. Abas:
 
-- **Produtividade:** por equipe e por usuário (carregamentos, peso total, leituras, tempo total e médio entre a primeira e a última leitura).
-- **Lançamentos:** cada carregamento × equipe com destino, rota, peso, box, usuários, início e última leitura.
+- **Produtividade:** por equipe e por usuário (lançamentos, carregamentos, peso total, leituras, tempo total e **tempo médio por lançamento**).
+- **Lançamentos:** cada caminhão, com os carregamentos, as cidades, o peso, as leituras e o tempo.
+- **Carregamentos:** cada carregamento × equipe com destino, rota, peso, box, usuários, primeira e última leitura.
+
+**Tempo de um lançamento** = de quando o lançamento anterior da equipe foi salvo até quando este foi salvo, no mesmo dia. O primeiro lançamento do dia conta da primeira leitura até salvar. Por usuário, a conta usa só os lançamentos da própria pessoa.
 - **Leituras:** todas as leituras individuais.
 - **Divergências** (Admin): lidos que não constam na 967 e carregamentos da 967 que ninguém lançou.
 - **Exportar Excel:** gera um .xlsx com uma aba para cada visão.

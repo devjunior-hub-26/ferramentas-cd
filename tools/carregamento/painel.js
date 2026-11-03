@@ -76,12 +76,14 @@ async function calcular(f) {
   const leituras = dados.leituras;
   const c967 = new Map(dados.c967.map((c) => [c.numero, c]));
   const naoLancados = dados.naoLancados;
+  const pesoDe = (num) => Number(c967.get(num)?.peso || 0);
+  const pesoTotal = (nums) => [...nums].reduce((s, n) => s + pesoDe(n), 0);
 
-  // Lançamento = carregamento × equipe
-  const mapaLanc = new Map();
+  // Carregamento × equipe (cruzamento com a 967)
+  const mapaCarr = new Map();
   for (const l of leituras) {
     const k = `${l.carregamento}|${l.equipe_id}`;
-    let x = mapaLanc.get(k);
+    let x = mapaCarr.get(k);
     if (!x) {
       const c = c967.get(l.carregamento);
       x = {
@@ -89,7 +91,7 @@ async function calcular(f) {
         destino: c?.destino || '', rota: c?.rota || '', peso: c?.peso != null ? Number(c.peso) : null, na967: !!c,
         boxes: new Set(), usuarios: new Set(), qtd: 0, inicio: l.lido_em, ultima: l.lido_em,
       };
-      mapaLanc.set(k, x);
+      mapaCarr.set(k, x);
     }
     x.boxes.add(l.box);
     x.usuarios.add(l.usuario_nome || '?');
@@ -97,46 +99,74 @@ async function calcular(f) {
     if (l.lido_em < x.inicio) x.inicio = l.lido_em;
     if (l.lido_em > x.ultima) x.ultima = l.lido_em;
   }
-  const lancamentos = [...mapaLanc.values()]
-    .map((x) => ({ ...x, duracao: new Date(x.ultima) - new Date(x.inicio) }))
-    .sort((a, b) => b.inicio.localeCompare(a.inicio));
+  const carregamentos = [...mapaCarr.values()].sort((a, b) => b.inicio.localeCompare(a.inicio));
+
+  // Tempo de cada lançamento: do lançamento anterior (mesmo dia) até este;
+  // o primeiro do dia conta da primeira leitura até salvar.
+  const tempos = (lista, chave) => {
+    const grupos = new Map();
+    for (const l of lista) {
+      const k = `${l[chave]}|${hojeISO(new Date(l.salvo_em))}`;
+      if (!grupos.has(k)) grupos.set(k, []);
+      grupos.get(k).push(l);
+    }
+    const t = new Map();
+    for (const g of grupos.values()) {
+      g.sort((a, b) => a.salvo_em.localeCompare(b.salvo_em));
+      g.forEach((l, i) => t.set(l.id, new Date(l.salvo_em) - new Date(i ? g[i - 1].salvo_em : l.iniciado_em)));
+    }
+    return t;
+  };
+  const tempoEquipe = tempos(dados.lancamentos, 'equipe_id');
+  const tempoUsuario = tempos(dados.lancamentos, 'usuario_id');
+
+  // Lançamentos (um por caminhão), montados a partir das leituras que passaram nos filtros
+  const leiturasDoLanc = new Map();
+  for (const l of leituras) {
+    if (!l.lancamento_id) continue;
+    if (!leiturasDoLanc.has(l.lancamento_id)) leiturasDoLanc.set(l.lancamento_id, []);
+    leiturasDoLanc.get(l.lancamento_id).push(l);
+  }
+  const lancamentos = dados.lancamentos.filter((x) => leiturasDoLanc.has(x.id)).map((x) => {
+    const ls = leiturasDoLanc.get(x.id);
+    const nums = [...new Set(ls.map((l) => l.carregamento))];
+    const destinos = [...new Set(nums.map((n) => c967.get(n)?.destino).filter(Boolean))];
+    return {
+      ...x, carregamentos: nums, destinos, peso: pesoTotal(nums), qtd: ls.length,
+      tempo: tempoEquipe.get(x.id), tempoUsuario: tempoUsuario.get(x.id),
+    };
+  }).sort((a, b) => b.salvo_em.localeCompare(a.salvo_em));
 
   // Produtividade por equipe
   const mapaEq = new Map();
-  for (const x of lancamentos) {
-    const e = mapaEq.get(x.equipe_id) || { equipe: x.equipe, carregamentos: 0, peso: 0, leituras: 0, tempo: 0, sem967: 0 };
-    e.carregamentos++;
-    e.peso += x.peso || 0;
-    e.leituras += x.qtd;
-    e.tempo += x.duracao;
-    if (!x.na967) e.sem967++;
-    mapaEq.set(x.equipe_id, e);
-  }
-  const porEquipe = [...mapaEq.values()].sort((a, b) => b.carregamentos - a.carregamentos || b.peso - a.peso);
+  const equipe = (id, nome) => {
+    if (!mapaEq.has(id)) mapaEq.set(id, { equipe: nome, lancamentos: 0, tempo: 0, carregs: new Set(), leituras: 0, sem967: 0 });
+    return mapaEq.get(id);
+  };
+  for (const x of lancamentos) { const e = equipe(x.equipe_id, x.equipe_nome); e.lancamentos++; e.tempo += x.tempo; }
+  for (const x of carregamentos) { const e = equipe(x.equipe_id, x.equipe); e.carregs.add(x.carregamento); e.leituras += x.qtd; if (!x.na967) e.sem967++; }
+  const porEquipe = [...mapaEq.values()].map((e) => ({ ...e, carregamentos: e.carregs.size, peso: pesoTotal(e.carregs) }))
+    .sort((a, b) => b.lancamentos - a.lancamentos || b.carregamentos - a.carregamentos);
 
-  // Produtividade por usuário
+  // Produtividade por usuário (tempo entre os lançamentos da própria pessoa)
   const mapaUs = new Map();
-  for (const l of leituras) {
-    const u = mapaUs.get(l.usuario_id) || { usuario: l.usuario_nome || '?', login: l.usuario_login || '', equipes: new Set(), leituras: 0, carregs: new Map() };
-    u.equipes.add(l.equipe_nome || '');
-    u.leituras++;
-    const c = u.carregs.get(l.carregamento) || { inicio: l.lido_em, ultima: l.lido_em };
-    if (l.lido_em < c.inicio) c.inicio = l.lido_em;
-    if (l.lido_em > c.ultima) c.ultima = l.lido_em;
-    u.carregs.set(l.carregamento, c);
-    mapaUs.set(l.usuario_id, u);
-  }
-  const porUsuario = [...mapaUs.values()].map((u) => {
-    let peso = 0, tempo = 0;
-    for (const [num, c] of u.carregs) {
-      peso += Number(c967.get(num)?.peso || 0);
-      tempo += new Date(c.ultima) - new Date(c.inicio);
-    }
-    return { usuario: u.usuario, login: u.login, equipes: [...u.equipes].join(', '), carregamentos: u.carregs.size, peso, leituras: u.leituras, tempo };
-  }).sort((a, b) => b.carregamentos - a.carregamentos || b.leituras - a.leituras);
+  const usuario = (l) => {
+    if (!mapaUs.has(l.usuario_id)) mapaUs.set(l.usuario_id, { usuario: l.usuario_nome || '?', login: l.usuario_login || '', equipes: new Set(), lancamentos: 0, tempo: 0, carregs: new Set(), leituras: 0 });
+    return mapaUs.get(l.usuario_id);
+  };
+  for (const l of leituras) { const u = usuario(l); u.equipes.add(l.equipe_nome || ''); u.carregs.add(l.carregamento); u.leituras++; }
+  for (const x of lancamentos) { const u = usuario(x); u.lancamentos++; u.tempo += x.tempoUsuario; }
+  const porUsuario = [...mapaUs.values()].map((u) => ({
+    ...u, equipes: [...u.equipes].join(', '), carregamentos: u.carregs.size, peso: pesoTotal(u.carregs),
+  })).sort((a, b) => b.lancamentos - a.lancamentos || b.leituras - a.leituras);
 
-  return { filtros: f, leituras, c967, lancamentos, porEquipe, porUsuario, naoLancados, foraDa967: lancamentos.filter((x) => !x.na967) };
+  return {
+    filtros: f, leituras, c967, lancamentos, carregamentos, porEquipe, porUsuario, naoLancados,
+    foraDa967: carregamentos.filter((x) => !x.na967), pesoTotal: pesoTotal(new Set(leituras.map((l) => l.carregamento))),
+  };
 }
+
+const medio = (tempo, qtd) => (qtd ? duracao(tempo / qtd) : '—');
 
 // ---------------------------------------------------------------
 // Renderização
@@ -146,32 +176,37 @@ const LIMITE_TELA = 1000;
 
 function renderizar() {
   const r = resultado;
-  const carregDistintos = new Set(r.lancamentos.map((x) => x.carregamento));
-  const pesoTotal = [...carregDistintos].reduce((s, n) => s + Number(r.c967.get(n)?.peso || 0), 0);
-  const tempoTotal = r.lancamentos.reduce((s, x) => s + x.duracao, 0);
+  const tempoTotal = r.lancamentos.reduce((s, x) => s + x.tempo, 0);
 
   $('#kpis').innerHTML = [
+    ['Lançamentos', numero(r.lancamentos.length)],
+    ['Carregamentos', numero(new Set(r.leituras.map((l) => l.carregamento)).size)],
     ['Leituras', numero(r.leituras.length)],
-    ['Carregamentos', numero(carregDistintos.size)],
-    ['Peso total (kg)', numero(pesoTotal)],
+    ['Peso total (kg)', numero(r.pesoTotal)],
     ['Equipes', numero(r.porEquipe.length)],
-    ['Tempo médio / carreg.', r.lancamentos.length ? duracao(tempoTotal / r.lancamentos.length) : '—'],
+    ['Tempo médio / lançamento', medio(tempoTotal, r.lancamentos.length)],
   ].map(([k, v]) => `<div class="kpi"><div class="rotulo">${k}</div><div class="valor">${v}</div></div>`).join('');
 
   $('#tb-equipes').innerHTML = r.porEquipe.length ? r.porEquipe.map((e) => `<tr>
-    <td><b>${esc(e.equipe)}</b></td><td class="num">${e.carregamentos}</td><td class="num">${numero(e.peso)}</td>
-    <td class="num">${e.leituras}</td><td class="num">${duracao(e.tempo)}</td><td class="num">${duracao(e.tempo / e.carregamentos)}</td>
-    <td class="num">${e.sem967 ? `<span class="selo alerta">${e.sem967}</span>` : '0'}</td></tr>`).join('') : vazio(7);
+    <td><b>${esc(e.equipe)}</b></td><td class="num">${e.lancamentos}</td><td class="num">${e.carregamentos}</td><td class="num">${numero(e.peso)}</td>
+    <td class="num">${e.leituras}</td><td class="num">${duracao(e.tempo)}</td><td class="num">${medio(e.tempo, e.lancamentos)}</td>
+    <td class="num">${e.sem967 ? `<span class="selo alerta">${e.sem967}</span>` : '0'}</td></tr>`).join('') : vazio(8);
 
   $('#tb-usuarios').innerHTML = r.porUsuario.length ? r.porUsuario.map((u) => `<tr>
-    <td><b>${esc(u.usuario)}</b></td><td>${esc(u.equipes)}</td><td class="num">${u.carregamentos}</td><td class="num">${numero(u.peso)}</td>
-    <td class="num">${u.leituras}</td><td class="num">${duracao(u.tempo)}</td><td class="num">${duracao(u.tempo / u.carregamentos)}</td></tr>`).join('') : vazio(7);
+    <td><b>${esc(u.usuario)}</b></td><td>${esc(u.equipes)}</td><td class="num">${u.lancamentos}</td><td class="num">${u.carregamentos}</td>
+    <td class="num">${numero(u.peso)}</td><td class="num">${u.leituras}</td><td class="num">${duracao(u.tempo)}</td>
+    <td class="num">${medio(u.tempo, u.lancamentos)}</td></tr>`).join('') : vazio(8);
 
-  $('#tb-lanc').innerHTML = r.lancamentos.length ? r.lancamentos.slice(0, LIMITE_TELA).map((x) => `<tr>
+  $('#tb-lancamentos').innerHTML = r.lancamentos.length ? r.lancamentos.slice(0, LIMITE_TELA).map((x) => `<tr>
+    <td>${dataHora(x.salvo_em)}</td><td>${esc(x.equipe_nome)}</td><td>${esc(x.usuario_nome)}</td>
+    <td class="num">${x.carregamentos.length}</td><td>${esc(x.carregamentos.join(', '))}</td><td>${esc(x.destinos.join(' · '))}</td>
+    <td class="num">${numero(x.peso)}</td><td class="num">${x.qtd}</td><td class="num">${duracao(x.tempo)}</td></tr>`).join('') : vazio(9);
+
+  $('#tb-lanc').innerHTML = r.carregamentos.length ? r.carregamentos.slice(0, LIMITE_TELA).map((x) => `<tr>
     <td><b>${esc(x.carregamento)}</b></td><td>${esc(x.destino)}</td><td>${esc(x.rota)}</td><td class="num">${numero(x.peso)}</td>
     <td>${esc([...x.boxes].join(', '))}</td><td>${esc(x.equipe)}</td><td>${esc([...x.usuarios].join(', '))}</td>
-    <td class="num">${x.qtd}</td><td>${dataHora(x.inicio)}</td><td>${dataHora(x.ultima)}</td><td class="num">${duracao(x.duracao)}</td>
-    <td>${x.na967 ? '<span class="selo sucesso">OK</span>' : '<span class="selo erro">Não consta</span>'}</td></tr>`).join('') : vazio(12);
+    <td class="num">${x.qtd}</td><td>${dataHora(x.inicio)}</td><td>${dataHora(x.ultima)}</td>
+    <td>${x.na967 ? '<span class="selo sucesso">OK</span>' : '<span class="selo erro">Não consta</span>'}</td></tr>`).join('') : vazio(11);
 
   $('#leit-info').textContent = r.leituras.length > LIMITE_TELA
     ? `Mostrando as ${LIMITE_TELA} mais recentes de ${numero(r.leituras.length)}. O Excel traz todas.` : '';
@@ -209,18 +244,25 @@ $('#btn-exportar').addEventListener('click', () => {
     XLSX.utils.book_append_sheet(wb, ws, nome);
   };
 
+  const minMedio = (tempo, qtd) => (qtd ? min(tempo / qtd) : null);
+
   aba('Lançamentos', r.lancamentos.map((x) => ({
+    'Salvo em': dt(x.salvo_em), 'Primeira leitura': dt(x.iniciado_em), 'Equipe': x.equipe_nome, 'Usuário': x.usuario_nome,
+    'Qtd. carregamentos': x.carregamentos.length, 'Carregamentos': x.carregamentos.join(', '), 'Destinos': x.destinos.join(' · '),
+    'Peso (kg)': x.peso, 'Leituras': x.qtd, 'Tempo desde o lançamento anterior (min)': min(x.tempo),
+  })));
+  aba('Carregamentos', r.carregamentos.map((x) => ({
     'Carregamento': x.carregamento, 'Destino': x.destino, 'Rota': x.rota, 'Peso (kg)': x.peso,
     'Box': [...x.boxes].join(', '), 'Equipe': x.equipe, 'Usuários': [...x.usuarios].join(', '), 'Leituras': x.qtd,
-    'Início': dt(x.inicio), 'Última leitura': dt(x.ultima), 'Duração (min)': min(x.duracao), 'Consta na 967': x.na967 ? 'Sim' : 'Não',
+    'Primeira leitura': dt(x.inicio), 'Última leitura': dt(x.ultima), 'Consta na 967': x.na967 ? 'Sim' : 'Não',
   })));
   aba('Prod. Equipes', r.porEquipe.map((e) => ({
-    'Equipe': e.equipe, 'Carregamentos': e.carregamentos, 'Peso total (kg)': e.peso, 'Leituras': e.leituras,
-    'Tempo total (min)': min(e.tempo), 'Tempo médio por carregamento (min)': min(e.tempo / e.carregamentos), 'Sem 967': e.sem967,
+    'Equipe': e.equipe, 'Lançamentos': e.lancamentos, 'Carregamentos': e.carregamentos, 'Peso total (kg)': e.peso, 'Leituras': e.leituras,
+    'Tempo total (min)': min(e.tempo), 'Tempo médio por lançamento (min)': minMedio(e.tempo, e.lancamentos), 'Sem 967': e.sem967,
   })));
   aba('Prod. Usuários', r.porUsuario.map((u) => ({
-    'Usuário': u.usuario, 'Login': u.login, 'Equipe(s)': u.equipes, 'Carregamentos': u.carregamentos, 'Peso (kg)': u.peso,
-    'Leituras': u.leituras, 'Tempo total (min)': min(u.tempo), 'Tempo médio por carregamento (min)': min(u.tempo / u.carregamentos),
+    'Usuário': u.usuario, 'Login': u.login, 'Equipe(s)': u.equipes, 'Lançamentos': u.lancamentos, 'Carregamentos': u.carregamentos,
+    'Peso (kg)': u.peso, 'Leituras': u.leituras, 'Tempo total (min)': min(u.tempo), 'Tempo médio por lançamento (min)': minMedio(u.tempo, u.lancamentos),
   })));
   aba('Leituras', r.leituras.map((l) => ({
     'Data/hora': dt(l.lido_em), 'Carregamento': l.carregamento, 'Box': l.box, 'Transação': l.transacao,
