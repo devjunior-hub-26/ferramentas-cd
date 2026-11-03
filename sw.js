@@ -4,7 +4,7 @@
 //
 // IMPORTANTE: sempre que publicar uma nova versão, aumente VERSAO para os
 // celulares baixarem os arquivos novos.
-const VERSAO = 'v2.3.0';
+const VERSAO = 'v2.4.0';
 const CACHE = `ferramentas-cd-${VERSAO}`;
 
 const ARQUIVOS = [
@@ -42,8 +42,10 @@ const ARQUIVOS = [
 self.addEventListener('install', (ev) => {
   ev.waitUntil((async () => {
     const cache = await caches.open(CACHE);
-    // Um por um: se algum falhar, os outros continuam sendo guardados
-    await Promise.all(ARQUIVOS.map((u) => cache.add(u).catch((e) => console.warn('SW: não guardou', u, e))));
+    // Um por um: se algum falhar, os outros continuam sendo guardados.
+    // cache: 'reload' busca no servidor, nunca a cópia antiga do cache do navegador.
+    await Promise.all(ARQUIVOS.map((u) => cache.add(new Request(u, { cache: 'reload' }))
+      .catch((e) => console.warn('SW: não guardou', u, e))));
     await self.skipWaiting();
   })());
 });
@@ -66,7 +68,7 @@ self.addEventListener('fetch', (ev) => {
   if (req.mode === 'navigate') {
     ev.respondWith((async () => {
       try {
-        const resp = await fetch(req);
+        const resp = await fetch(req, { cache: 'no-cache' });
         const cache = await caches.open(CACHE);
         cache.put(req, resp.clone());
         return resp;
@@ -81,7 +83,7 @@ self.addEventListener('fetch', (ev) => {
   ev.respondWith((async () => {
     const cache = await caches.open(CACHE);
     const emCache = await cache.match(req, { ignoreSearch: true });
-    const daRede = fetch(req).then((resp) => {
+    const daRede = fetch(req, { cache: 'no-cache' }).then((resp) => {
       if (resp.ok || resp.type === 'opaque') cache.put(req, resp.clone());
       return resp;
     }).catch(() => null);
