@@ -155,10 +155,9 @@ async function iniciar() {
     servidor = new Function('SpreadsheetApp', 'LockService', 'CacheService', 'Utilities', 'ContentService',
       `${codigo}\n;return { doPost, prepararPlanilha, criarAdminInicial, sha256, hashSenha };`)(SpreadsheetApp, LockService, CacheService, Utilities, ContentService);
   }
-  if (!dados.abas.Usuarios) {
-    servidor.prepararPlanilha();
-    salvar();
-  }
+  // Dados novos ou de uma versão anterior: cria as abas que faltam
+  servidor.prepararPlanilha();
+  salvar();
 }
 
 /** Cria o administrador de teste se o login digitado for o dele. */

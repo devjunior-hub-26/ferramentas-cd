@@ -121,7 +121,13 @@ const ACOES = {
 let _tabelas = {}; // leitura em memória durante uma requisição
 
 function aba(nome) {
-  const sh = SpreadsheetApp.getActive().getSheetByName(nome);
+  const planilha = SpreadsheetApp.getActive();
+  let sh = planilha.getSheetByName(nome);
+  // Versão nova do código com aba nova: cria as abas que faltam sozinha
+  if (!sh && planilha.getSheetByName('Usuarios')) {
+    prepararPlanilha();
+    sh = planilha.getSheetByName(nome);
+  }
   if (!sh) throw new ErroApp('NAO_INSTALADO', 'A planilha ainda não foi preparada. Rode a função "instalar" no Apps Script.');
   return sh;
 }
