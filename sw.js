@@ -4,7 +4,7 @@
 //
 // IMPORTANTE: sempre que publicar uma nova versão, aumente VERSAO para os
 // celulares baixarem os arquivos novos.
-const VERSAO = 'v2.5.0';
+const VERSAO = 'v2.6.0';
 const CACHE = `ferramentas-cd-${VERSAO}`;
 
 const ARQUIVOS = [
