@@ -29,6 +29,14 @@ export const FERRAMENTAS = [
     perfis: ['admin', 'lider'],
   },
   {
+    id: 'expedicao',
+    nome: 'Quadro da Expedição',
+    descricao: 'Organograma, chamada, histórico, férias e hierarquia.',
+    icone: 'organograma',
+    link: 'tools/expedicao/',
+    perfis: ['admin'],
+  },
+  {
     id: 'admin',
     nome: 'Usuários e Equipes',
     descricao: 'Cadastre usuários, monte as equipes e veja o histórico.',

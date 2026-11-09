@@ -17,6 +17,7 @@ Primeira ferramenta: **Produtividade de Carregamento**, com leitura de QR Code d
 /assets/icons/                  → ícones do app
 /tools/carregamento/            → leitura de QR (index.html) e painel (painel.html)
 /tools/admin/                   → usuários, equipes e histórico
+/tools/expedicao/               → organograma, chamada e férias (colaboradores na planilha, nunca no código)
 /tools/_modelo/                 → modelo para criar ferramentas novas
 /apps-script/Codigo.gs          → o servidor: colar no Apps Script da planilha
 /docs/NOVA-FERRAMENTA.md        → como adicionar uma ferramenta

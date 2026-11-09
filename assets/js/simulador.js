@@ -46,6 +46,10 @@ class Faixa {
     });
     return this;
   }
+  clearContent() {
+    this.linhas.splice(this.r - 1, this.nr);
+    return this;
+  }
   setNumberFormat() { return this; }
   setFontWeight() { return this; }
   createTextFinder(t) {

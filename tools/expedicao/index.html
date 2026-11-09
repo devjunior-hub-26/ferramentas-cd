@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0A1F44">
+  <title>Quadro da Expedição · Ferramentas do CD</title>
+  <link rel="manifest" href="../../manifest.json">
+  <link rel="icon" href="../../assets/icons/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../assets/css/global.css">
+  <link rel="stylesheet" href="expedicao.css">
+</head>
+<body>
+  <header class="topo">
+    <a class="icone-btn" id="btn-voltar" href="../../index.html" aria-label="Voltar ao início" title="Início"></a>
+    <div class="titulo">
+      <strong>Quadro da Expedição</strong>
+      <small id="t-usuario"></small>
+    </div>
+    <div class="sync">
+      <span id="sync-status" class="ponto">Conectando…</span>
+      <span id="sync-pend" class="pendentes" hidden></span>
+    </div>
+  </header>
+
+  <div class="conteudo" id="aviso-caixa" hidden><div class="aviso alerta" id="aviso" role="status"></div></div>
+  <p class="carregando" id="carregando-dados" hidden>Carregando colaboradores…</p>
+
+  <!-- Primeiro uso: a lista de colaboradores não fica no site publicado -->
+  <main class="conteudo estreito" id="sem-dados" hidden>
+    <div class="cartao">
+      <h2>Importar colaboradores</h2>
+      <p>Por segurança, nomes e chapas não ficam no site publicado. Selecione o arquivo do quadro (<b>.html</b>) ou um backup (<b>.json</b>).</p>
+      <p class="suave">Basta fazer uma vez: a lista vai para a planilha do servidor e aparece em todos os aparelhos do administrador.</p>
+      <button class="btn bloco" type="button" data-acao="escolherArquivo" data-icone="upload">Selecionar arquivo</button>
+    </div>
+  </main>
+  <input type="file" id="arquivo" accept=".html,.htm,.json,text/html,application/json" hidden>
+
+  <nav class="abas" id="abas" role="tablist" hidden>
+    <button data-aba="org" role="tab">Organograma</button>
+    <button data-aba="att" role="tab">Chamada</button>
+    <button data-aba="hist" role="tab">Histórico</button>
+    <button data-aba="ferias" role="tab">Férias</button>
+    <button data-aba="cfg" role="tab">Hierarquia</button>
+  </nav>
+
+  <main class="conteudo" id="principal" hidden>
+    <!-- ORGANOGRAMA -->
+    <section id="aba-org" hidden>
+      <div class="kpis" id="org-kpis"></div>
+      <div class="chips">
+        <button class="chip ativo" data-acao="filtroOrg" data-valor="all">Todos</button>
+        <button class="chip" data-acao="filtroOrg" data-valor="EXPEDIÇÃO ADEGA">Exp. Adega</button>
+        <button class="chip" data-acao="filtroOrg" data-valor="EXPEDIÇÃO CAMINHÃO">Exp. Caminhão</button>
+        <button class="chip" data-acao="filtroOrg" data-valor="CONFERENCIA">Conferência</button>
+      </div>
+      <div class="legenda">
+        <span><i style="background:var(--org-sup)"></i>Supervisor</span>
+        <span><i style="background:var(--org-sub)"></i>Sub/Líder</span>
+        <span><i style="background:var(--org-lider)"></i>Analista/Assist.</span>
+        <span><i style="background:var(--org-conf)"></i>Conferente</span>
+        <span><i style="background:var(--org-aux)"></i>Auxiliar/Oper.</span>
+      </div>
+      <div class="btns barra-acoes">
+        <button class="btn pequeno secundario" data-acao="fotoOrg" data-icone="download">Foto do organograma</button>
+        <button class="btn pequeno secundario" data-acao="abrirRelatorio" data-icone="prancheta">Relatório de funcionários</button>
+      </div>
+      <div class="org-caixa"><div id="org-area"><svg id="org-svg" aria-hidden="true"></svg><div id="org-nos"></div></div></div>
+    </section>
+
+    <!-- CHAMADA -->
+    <section id="aba-att" hidden>
+      <div class="kpis" id="att-kpis"></div>
+      <div class="barra-presenca"><div class="barra"><span id="att-barra"></span></div><strong id="att-pct"></strong></div>
+      <div class="chips">
+        <button class="chip ativo" data-acao="filtroAtt" data-valor="all">Todos</button>
+        <button class="chip" data-acao="filtroAtt" data-valor="EXPEDIÇÃO">Expedição</button>
+        <button class="chip" data-acao="filtroAtt" data-valor="EXPEDIÇÃO ADEGA">Exp. Adega</button>
+        <button class="chip" data-acao="filtroAtt" data-valor="EXPEDIÇÃO CAMINHÃO">Exp. Caminhão</button>
+        <button class="chip" data-acao="filtroAtt" data-valor="CONFERENCIA">Conferência</button>
+      </div>
+      <div class="btns barra-acoes">
+        <button class="btn pequeno sucesso" data-acao="marcarTodos">Todos presentes</button>
+        <button class="btn pequeno secundario" data-acao="resetar">Resetar</button>
+        <button class="btn pequeno secundario" data-acao="abrirExportar" data-icone="download">Exportar PNG</button>
+        <button class="btn pequeno" data-acao="salvarHistorico">Salvar no histórico</button>
+      </div>
+      <p class="suave"><small>Toque na pessoa para trocar: Presente, Falta, Atestado, 2º Turno, Folga, Férias e Não marcado.</small></p>
+      <div id="att-lista"></div>
+    </section>
+
+    <!-- HISTÓRICO -->
+    <section id="aba-hist" hidden>
+      <div class="linha entre titulo-aba">
+        <div>
+          <h2>Histórico de chamadas</h2>
+          <p class="suave"><small>Use "Salvar no histórico" na aba Chamada para arquivar o dia.</small></p>
+        </div>
+        <div class="btns">
+          <button class="btn pequeno sucesso" data-acao="exportarHistorico" data-icone="download">Exportar Excel</button>
+          <button class="btn pequeno secundario" data-acao="limparHistorico">Limpar histórico</button>
+        </div>
+      </div>
+      <div class="cartao">
+        <div class="grade-filtros">
+          <div class="campo"><label for="hist-de">Data inicial</label><input type="date" id="hist-de"></div>
+          <div class="campo"><label for="hist-ate">Data final</label><input type="date" id="hist-ate"></div>
+        </div>
+        <div class="chips mt">
+          <button class="chip" data-acao="periodo" data-valor="7">7 dias</button>
+          <button class="chip" data-acao="periodo" data-valor="30">30 dias</button>
+          <button class="chip" data-acao="periodo" data-valor="90">90 dias</button>
+          <button class="chip ativo" data-acao="periodo" data-valor="0">Todos</button>
+        </div>
+        <div class="chips sem-margem">
+          <button class="chip ativo" data-acao="motivo" data-valor="all">Todos os motivos</button>
+          <button class="chip" data-acao="motivo" data-valor="falta">Falta</button>
+          <button class="chip" data-acao="motivo" data-valor="atestado">Atestado</button>
+          <button class="chip" data-acao="motivo" data-valor="segundo_turno">2º Turno</button>
+          <button class="chip" data-acao="motivo" data-valor="folga">Folga</button>
+          <button class="chip" data-acao="motivo" data-valor="ferias">Férias</button>
+        </div>
+      </div>
+      <div class="kpis" id="hist-kpis"></div>
+      <p class="suave" id="hist-info"></p>
+      <div id="hist-lista"></div>
+    </section>
+
+    <!-- FÉRIAS -->
+    <section id="aba-ferias" hidden>
+      <div class="titulo-aba">
+        <h2>Programação de férias</h2>
+        <p class="suave"><small>Toque no mês para programar. O vencimento é calculado pela data de admissão.</small></p>
+      </div>
+      <div class="chips">
+        <button class="chip ativo" data-acao="filtroFerias" data-valor="all">Todos os setores</button>
+        <button class="chip" data-acao="filtroFerias" data-valor="EXPEDIÇÃO ADEGA">Exp. Adega</button>
+        <button class="chip" data-acao="filtroFerias" data-valor="EXPEDIÇÃO CAMINHÃO">Exp. Caminhão</button>
+        <button class="chip" data-acao="filtroFerias" data-valor="CONFERENCIA">Conferência</button>
+      </div>
+      <div class="chips" id="ferias-meses"></div>
+      <div class="legenda">
+        <span><i class="quadrado" style="background:var(--azul-marinho)"></i>Férias programadas</span>
+        <span><i class="quadrado" style="background:var(--erro-fundo);border:2px solid var(--erro)"></i>Mês limite</span>
+        <strong id="ferias-info"></strong>
+      </div>
+      <div class="ferias-caixa" id="ferias-grade"></div>
+    </section>
+
+    <!-- HIERARQUIA -->
+    <section id="aba-cfg" hidden>
+      <div class="cartao">
+        <h3>Dados</h3>
+        <p class="suave" id="dados-status">Dados guardados na planilha do servidor.</p>
+        <div class="btns">
+          <button class="btn pequeno secundario" data-acao="baixarBackup" data-icone="download">Baixar backup</button>
+          <button class="btn pequeno secundario" data-acao="escolherArquivo" data-icone="upload">Carregar backup</button>
+        </div>
+      </div>
+      <details class="cartao">
+        <summary><b>Como usar o nível hierárquico</b></summary>
+        <p>O campo <b>Nível</b> define a árvore do organograma:</p>
+        <ul class="niveis">
+          <li><code>1.0</code> Supervisor (raiz)</li>
+          <li><code>2.0</code> Analista direto</li>
+          <li><code>2.1</code> Líder Adega · <code>2.1.1</code> Membros da Adega</li>
+          <li><code>2.2</code> Líder Exp. Adega · <code>2.2.1</code> Auxiliares Exp. Adega</li>
+          <li><code>2.3</code> Líderes Exp. Caminhão · <code>2.3.1</code> Conferentes · <code>2.3.2</code> Auxiliares</li>
+        </ul>
+        <p class="suave">Um nó é filho do nó de menor profundidade mais próximo acima dele na ordenação.</p>
+      </details>
+      <div class="linha entre titulo-aba">
+        <h2>Configurar hierarquia</h2>
+        <button class="btn pequeno sucesso" data-acao="novoColaborador">Novo colaborador</button>
+      </div>
+      <div class="campo"><label for="cfg-busca">Buscar colaborador</label><input id="cfg-busca" type="search" placeholder="Nome, chapa, função ou setor"></div>
+      <div class="tabela-wrap"><table class="tabela">
+        <thead><tr id="cfg-cabeca">
+          <th class="ordena" data-acao="ordenar" data-valor="Chapa">Chapa</th>
+          <th class="ordena" data-acao="ordenar" data-valor="Nome">Nome</th>
+          <th class="ordena" data-acao="ordenar" data-valor="funcao">Função</th>
+          <th class="ordena" data-acao="ordenar" data-valor="Setor">Setor</th>
+          <th class="ordena" data-acao="ordenar" data-valor="NIVEL">Nível</th>
+          <th class="ordena" data-acao="ordenar" data-valor="Admissao">Admissão</th>
+          <th>Férias prog.</th>
+          <th>Ações</th>
+        </tr></thead>
+        <tbody id="cfg-corpo"></tbody>
+      </table></div>
+    </section>
+  </main>
+
+  <div id="print-area"></div>
+  <div id="print-rel"></div>
+
+  <!-- Classificar ausências antes do PNG -->
+  <dialog class="modal largo" id="dlg-exportar">
+    <div class="modal-topo">Classificar ausências</div>
+    <div class="modal-corpo">
+      <p class="suave">Classifique cada ausente antes de gerar o PNG. Isso também fica na chamada do dia.</p>
+      <div id="exportar-lista"></div>
+    </div>
+    <div class="modal-rodape">
+      <button class="btn pequeno secundario" type="button" data-fechar>Cancelar</button>
+      <button class="btn pequeno" type="button" data-acao="confirmarExportar">Gerar foto</button>
+    </div>
+  </dialog>
+
+  <!-- Foto pronta: compartilhar ou baixar -->
+  <dialog class="modal" id="dlg-foto">
+    <div class="modal-topo" id="foto-titulo">Foto</div>
+    <div class="modal-corpo"><img id="foto-img" class="foto-previa" alt="Prévia da foto gerada"></div>
+    <div class="modal-rodape">
+      <button class="btn pequeno secundario" type="button" data-fechar>Fechar</button>
+      <button class="btn pequeno secundario" type="button" data-acao="baixarFoto" data-icone="download">Baixar</button>
+      <button class="btn pequeno sucesso" type="button" data-acao="compartilharFoto" data-icone="compartilhar">Compartilhar</button>
+    </div>
+  </dialog>
+
+  <!-- Novo / editar colaborador -->
+  <dialog class="modal" id="dlg-colaborador">
+    <form id="form-colaborador">
+      <div class="modal-topo" id="colab-titulo">Editar colaborador</div>
+      <div class="modal-corpo">
+        <div class="grade-filtros">
+          <div class="campo"><label for="f-chapa">Chapa *</label><input id="f-chapa" type="number" inputmode="numeric" min="1" required></div>
+          <div class="campo"><label for="f-nivel">Nível hierárquico</label><input id="f-nivel" placeholder="Ex.: 2.2.2"></div>
+          <div class="campo inteiro"><label for="f-nome">Nome completo *</label><input id="f-nome" required></div>
+          <div class="campo inteiro"><label for="f-funcao">Função *</label>
+            <select id="f-funcao" required>
+              <option value="">Selecione</option>
+              <option>SUPERVISOR DE OPERAÇÕES</option><option>SUB ENCARREGADO DE LOGISTICA</option>
+              <option>LIDER DE OPERAÇÕES</option><option>ANALISTA DE LOGISTICA</option>
+              <option>ASSISTENTE DE LOGISTICA</option><option>CONFERENTE</option>
+              <option>OPERADOR DE EMPILHADEIRA</option><option>AUXILIAR DE LOGISTICA</option>
+              <option>AUXILIAR DE DEPOSITO</option>
+            </select>
+          </div>
+          <div class="campo inteiro"><label for="f-setor">Setor *</label>
+            <select id="f-setor" required>
+              <option value="">Selecione</option>
+              <option>EXPEDIÇÃO</option><option>EXPEDIÇÃO ADEGA</option><option>EXPEDIÇÃO CAMINHÃO</option><option>CONFERENCIA</option>
+            </select>
+          </div>
+          <div class="campo"><label for="f-admissao">Data de admissão</label><input id="f-admissao" type="date"></div>
+          <div class="campo"><label for="f-ferias">Mês de férias</label><select id="f-ferias"></select></div>
+        </div>
+      </div>
+      <div class="modal-rodape">
+        <button class="btn pequeno secundario" type="button" data-fechar>Cancelar</button>
+        <button class="btn pequeno" type="submit">Salvar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Relatório de funcionários -->
+  <dialog class="modal largo" id="dlg-relatorio">
+    <div class="modal-topo">Relatório de funcionários</div>
+    <div class="modal-corpo">
+      <div class="chips" id="rel-chips"></div>
+      <div class="campo"><label for="rel-busca">Buscar</label><input id="rel-busca" type="search" placeholder="Nome, chapa ou função"></div>
+      <p><span class="selo" id="rel-geral"></span></p>
+      <div id="rel-corpo"></div>
+    </div>
+    <div class="modal-rodape">
+      <button class="btn pequeno secundario" type="button" data-fechar>Fechar</button>
+      <button class="btn pequeno sucesso" type="button" data-acao="exportarRelatorio">Exportar Excel</button>
+      <button class="btn pequeno" type="button" data-acao="imprimirRelatorio">Imprimir</button>
+    </div>
+  </dialog>
+
+  <!-- Confirmação -->
+  <dialog class="modal" id="dlg-confirmar">
+    <form method="dialog">
+      <div class="modal-topo">Confirmar</div>
+      <div class="modal-corpo"><p id="confirmar-msg"></p></div>
+      <div class="modal-rodape">
+        <button class="btn pequeno secundario" value="nao">Cancelar</button>
+        <button class="btn pequeno" id="confirmar-ok" value="sim">Confirmar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script type="module" src="../../assets/js/pwa.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

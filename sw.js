@@ -36,7 +36,12 @@ const ARQUIVOS = [
   './tools/admin/',
   './tools/admin/index.html',
   './tools/admin/admin.js',
+  './tools/expedicao/',
+  './tools/expedicao/index.html',
+  './tools/expedicao/expedicao.css',
+  './tools/expedicao/app.js',
   'https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
 ];
 

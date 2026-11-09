@@ -23,7 +23,7 @@ const LOGIN_INICIAL_ADMIN = 'TROQUE-ESTE-LOGIN';
 const SENHA_INICIAL_ADMIN = 'TROQUE-ESTA-SENHA';
 
 // Mostrada no rodapé do app. Aumente sempre que este arquivo mudar.
-const VERSAO_SERVIDOR = 'v2.8.0';
+const VERSAO_SERVIDOR = 'v2.9.0';
 
 const DIAS_SESSAO = 60;         // por quanto tempo o celular fica logado
 const MAX_TENTATIVAS_LOGIN = 5;  // erros seguidos antes de bloquear por 5 minutos
@@ -41,6 +41,9 @@ const TABELAS = {
   Carregamentos967: ['numero', 'destino', 'rota', 'peso', 'data_ref', 'importado_em', 'importado_por'],
   Config: ['chave', 'valor'],
   Sessoes: ['token_hash', 'usuario_id', 'criado_em', 'expira_em'],
+  // Quadro da Expedição: status = chamada atual de cada colaborador
+  ExpColaboradores: ['chapa', 'nome', 'funcao', 'setor', 'nivel', 'admissao', 'ferias_mes', 'status'],
+  ExpHistorico: ['data', 'ts', 'obs', 'foto'],
 };
 
 const PERFIS = ['admin', 'lider', 'carregador'];
@@ -116,6 +119,15 @@ const ACOES = {
   removerUsuario: { perfis: ['admin'], fn: acaoRemoverUsuario },
   desativarEquipe: { perfis: ['admin'], fn: acaoDesativarEquipe },
   reativarEquipe: { perfis: ['admin'], fn: acaoReativarEquipe },
+
+  // Quadro da Expedição
+  expedicaoDados: { perfis: ['admin'], fn: acaoExpedicaoDados },
+  expedicaoImportar: { perfis: ['admin'], fn: acaoExpedicaoImportar },
+  expedicaoSalvar: { perfis: ['admin'], fn: acaoExpedicaoSalvar },
+  expedicaoSalvarColaborador: { perfis: ['admin'], fn: acaoExpedicaoSalvarColaborador },
+  expedicaoExcluirColaborador: { perfis: ['admin'], fn: acaoExpedicaoExcluirColaborador },
+  expedicaoSalvarDia: { perfis: ['admin'], fn: acaoExpedicaoSalvarDia },
+  expedicaoLimparHistorico: { perfis: ['admin'], fn: acaoExpedicaoLimparHistorico },
 };
 
 // =====================================================================
@@ -189,6 +201,20 @@ function regravar(nome, objs) {
   objs.forEach((o) => { novos[o._linha] = o; });
   sh.getRange(min, 1, max - min + 1, TABELAS[nome].length).setNumberFormat('@')
     .setValues(bloco.map((o) => paraLinha(nome, novos[o._linha] || o)));
+  delete _tabelas[nome];
+}
+
+/** Troca todas as linhas da tabela: grava primeiro e só depois limpa as que sobraram. */
+function substituirTabela(nome, objs) {
+  const sh = aba(nome);
+  const ncol = TABELAS[nome].length;
+  const antes = Math.max(0, sh.getLastRow() - 1);
+  if (objs.length) {
+    const ult = objs.length + 1;
+    if (ult > sh.getMaxRows()) sh.insertRowsAfter(sh.getMaxRows(), ult - sh.getMaxRows() + 500);
+    sh.getRange(2, 1, objs.length, ncol).setNumberFormat('@').setValues(objs.map((o) => paraLinha(nome, o)));
+  }
+  if (antes > objs.length) sh.getRange(objs.length + 2, 1, antes - objs.length, ncol).clearContent();
   delete _tabelas[nome];
 }
 
@@ -938,6 +964,171 @@ function acaoReativarEquipe(d) {
     atualizar('Equipes', e);
     return true;
   });
+}
+
+// =====================================================================
+// QUADRO DA EXPEDIÇÃO (somente administrador)
+// =====================================================================
+
+const EXP_STATUS = ['presente', 'falta', 'atestado', 'segundo_turno', 'folga', 'ferias'];
+const RE_CHAPA = /^[1-9]\d{0,11}$/;
+const RE_DIA_BR = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+const EXP_MAX_DIAS = 365;
+
+const expStatus = (v) => (EXP_STATUS.indexOf(v) >= 0 ? v : '');
+
+function expMes(v) {
+  const n = parseInt(v, 10);
+  return n >= 0 && n <= 11 ? String(n) : '';
+}
+
+/** Valida os campos cadastrais de um colaborador (status fica de fora). */
+function expColaborador(d) {
+  const chapa = texto(d.Chapa).trim();
+  const nome = texto(d.Nome).trim().slice(0, 120);
+  if (!RE_CHAPA.test(chapa)) throw new ErroApp('DADOS_INVALIDOS', 'Chapa inválida: ' + chapa);
+  if (!nome) throw new ErroApp('DADOS_INVALIDOS', 'Informe o nome da chapa ' + chapa + '.');
+  const admissao = texto(d.Admissao).trim();
+  return {
+    chapa: chapa,
+    nome: nome,
+    funcao: texto(d['Nome Funcão']).trim().slice(0, 80),
+    setor: texto(d.Setor).trim().slice(0, 60),
+    nivel: texto(d.NIVEL).trim().slice(0, 20),
+    admissao: /^\d{4}-\d{2}-\d{2}$/.test(admissao) ? admissao : '',
+    ferias_mes: expMes(d.FeriasMes),
+  };
+}
+
+function expPublico(c) {
+  return {
+    Chapa: Number(c.chapa), Nome: c.nome, 'Nome Funcão': c.funcao, Setor: c.setor, NIVEL: c.nivel,
+    Admissao: c.admissao, FeriasMes: c.ferias_mes === '' ? null : Number(c.ferias_mes),
+  };
+}
+
+function expFoto(foto) {
+  const out = {};
+  Object.keys(foto || {}).forEach((c) => { if (RE_CHAPA.test(c)) out[c] = expStatus(foto[c]) || null; });
+  const json = JSON.stringify(out);
+  if (json.length > 45000) throw new ErroApp('DADOS_INVALIDOS', 'Chamada grande demais para guardar no histórico.');
+  return json;
+}
+
+function expDia(d) {
+  const data = texto(d.date).trim();
+  const m = RE_DIA_BR.exec(data);
+  if (!m) throw new ErroApp('DADOS_INVALIDOS', 'Data inválida no histórico: ' + data);
+  return {
+    data: data,
+    ts: texto(d.ts).slice(0, 40) || (m[3] + '-' + m[2] + '-' + m[1] + 'T12:00:00.000Z'),
+    obs: texto(d.obs).slice(0, 500),
+    foto: expFoto(d.snapshot),
+  };
+}
+
+/** Mais recentes primeiro, um registro por data, no máximo EXP_MAX_DIAS. */
+function expGravarHistorico(dias) {
+  const vistos = {};
+  const lista = dias.slice().sort((a, b) => (a.ts < b.ts ? 1 : a.ts > b.ts ? -1 : 0))
+    .filter((d) => { if (vistos[d.data]) return false; vistos[d.data] = true; return true; })
+    .slice(0, EXP_MAX_DIAS);
+  substituirTabela('ExpHistorico', lista);
+}
+
+function expDiaPublico(d) {
+  let foto = {};
+  try { foto = JSON.parse(d.foto); } catch (e) { /* linha editada à mão: mostra vazio */ }
+  return { date: d.data, ts: d.ts, obs: d.obs, snapshot: foto };
+}
+
+function acaoExpedicaoDados() {
+  const lista = ler('ExpColaboradores');
+  const chamada = {};
+  lista.forEach((c) => { chamada[c.chapa] = c.status || null; });
+  return {
+    employees: lista.map(expPublico),
+    attendance: chamada,
+    history: ler('ExpHistorico').map(expDiaPublico).sort((a, b) => (a.ts < b.ts ? 1 : a.ts > b.ts ? -1 : 0)),
+  };
+}
+
+/** Troca a lista inteira. Sem `attendance`, mantém a chamada de quem já existia. */
+function acaoExpedicaoImportar(d) {
+  const lista = d.employees || [];
+  if (!lista.length) throw new ErroApp('DADOS_INVALIDOS', 'Nenhum colaborador informado.');
+  if (lista.length > 1000) throw new ErroApp('DADOS_INVALIDOS', 'Importe no máximo 1000 colaboradores por vez.');
+  return comTrava(() => {
+    const atual = {};
+    ler('ExpColaboradores').forEach((c) => { atual[c.chapa] = c.status; });
+    const vistos = {};
+    const novos = [];
+    lista.forEach((x) => {
+      const c = expColaborador(x);
+      if (vistos[c.chapa]) return;
+      vistos[c.chapa] = true;
+      c.status = d.attendance ? expStatus(d.attendance[c.chapa]) : (atual[c.chapa] || '');
+      novos.push(c);
+    });
+    const dias = Array.isArray(d.history) ? d.history.map(expDia) : null;
+    substituirTabela('ExpColaboradores', novos);
+    if (dias) expGravarHistorico(dias);
+    return { colaboradores: novos.length };
+  });
+}
+
+/** Lote de marcações: chamada { chapa: status } e férias { chapa: mês ou null }. */
+function acaoExpedicaoSalvar(d) {
+  const chamada = d.chamada || {};
+  const ferias = d.ferias || {};
+  return comTrava(() => {
+    const mudou = ler('ExpColaboradores').filter((c) => {
+      const temChamada = Object.prototype.hasOwnProperty.call(chamada, c.chapa);
+      const temFerias = Object.prototype.hasOwnProperty.call(ferias, c.chapa);
+      if (temChamada) c.status = expStatus(chamada[c.chapa]);
+      if (temFerias) c.ferias_mes = expMes(ferias[c.chapa]);
+      return temChamada || temFerias;
+    });
+    regravar('ExpColaboradores', mudou);
+    return true;
+  });
+}
+
+function acaoExpedicaoSalvarColaborador(d) {
+  const c = expColaborador(d);
+  return comTrava(() => {
+    const atual = ler('ExpColaboradores').find((x) => x.chapa === c.chapa);
+    if (d.novo) {
+      if (atual) throw new ErroApp('DUPLICADO', 'Chapa já cadastrada.');
+      c.status = '';
+      inserir('ExpColaboradores', [c]);
+    } else {
+      if (!atual) throw new ErroApp('NAO_ENCONTRADO', 'Colaborador não encontrado.');
+      Object.keys(c).forEach((k) => { atual[k] = c[k]; });
+      atualizar('ExpColaboradores', atual);
+    }
+    return true;
+  });
+}
+
+function acaoExpedicaoExcluirColaborador(d) {
+  const chapa = texto(d.chapa);
+  return comTrava(() => {
+    substituirTabela('ExpColaboradores', ler('ExpColaboradores').filter((c) => c.chapa !== chapa));
+    return true;
+  });
+}
+
+function acaoExpedicaoSalvarDia(d) {
+  const dia = expDia({ date: d.date, ts: agoraISO(), obs: d.obs, snapshot: d.snapshot });
+  return comTrava(() => {
+    expGravarHistorico([dia].concat(ler('ExpHistorico')));
+    return expDiaPublico(dia);
+  });
+}
+
+function acaoExpedicaoLimparHistorico() {
+  return comTrava(() => { substituirTabela('ExpHistorico', []); return true; });
 }
 
 // =====================================================================
