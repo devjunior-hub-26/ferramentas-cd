@@ -191,13 +191,20 @@ function destinoConhecido(carregamento) {
 
 /** Pergunta ao servidor se a leitura será aceita (sem gravar) e traz a cidade. */
 async function conferir(item) {
+  // A resposta pode chegar depois de tocar em Salvar; aí ela não vale mais
+  const foraDoLancamento = () => {
+    if (estado.salvando) item.conferencia = 'sem_sinal';
+    return estado.salvando || !estado.lancamento?.leituras.includes(item);
+  };
   try {
     const r = await comLimite(api('conferirLeitura', { carregamento: item.carregamento, box: item.box, transacao: item.transacao }));
+    if (foraDoLancamento()) return;
     item.conferencia = r.aviso ? 'aviso' : 'ok';
     item.msg = r.aviso ? `Carregamento já iniciado pela ${nomeEquipe(r.aviso.slice('OUTRA_EQUIPE:'.length))}.` : '';
     if (r.destino) estado.lancamento?.leituras.filter((x) => x.carregamento === item.carregamento).forEach((x) => { x.destino = r.destino; });
     if (r.aviso) mostrarResultado('alerta', 'Atenção', item.msg, item);
   } catch (e) {
+    if (foraDoLancamento()) return;
     const c = classificarErro(e);
     if (c.tipo === 'rede') {
       item.conferencia = 'sem_sinal';
@@ -208,7 +215,6 @@ async function conferir(item) {
       if (c.recarregarEquipe) carregarEquipe();
     }
   }
-  if (!estado.lancamento?.leituras.includes(item)) return; // lançamento já salvo ou descartado
   salvarLancamentoAtual();
   renderLancamento();
 }
@@ -252,8 +258,12 @@ function lancamentoGuardado() {
   try {
     const l = JSON.parse(localStorage.getItem(CH_LANC));
     if (!l?.leituras?.length) return null;
-    // Conferências que estavam em andamento quando a página fechou
-    l.leituras.forEach((x) => { if (x.conferencia === 'conferindo') x.conferencia = 'sem_sinal'; });
+    // Conferências que não terminaram quando a página fechou
+    l.leituras.forEach((x) => {
+      if (x.conferencia === 'conferindo') x.conferencia = 'sem_sinal';
+      // Recusa antiga: confere de novo, a regra do servidor pode ter mudado
+      if (x.conferencia === 'erro') { x.conferencia = 'sem_sinal'; x.msg = ''; }
+    });
     return l;
   } catch { return null; }
 }
@@ -343,8 +353,8 @@ $('#btn-salvar-lanc').addEventListener('click', async () => {
   try {
     const res = navigator.onLine ? await enviarLancamento(corpo) : { tipo: 'rede' };
     if (res.tipo === 'ok') {
+      estado.lancamento = null; // limpa a tela primeiro: já está salvo no servidor
       res.r.leituras.forEach(adicionarHistorico);
-      estado.lancamento = null;
       mostrarResultado('ok', 'Lançamento salvo', `${corpo.leituras.length} leitura(s) em ${qtdCarreg} carregamento(s). Pode começar o próximo caminhão.`);
     } else if (res.tipo === 'rede') {
       // Sem sinal: o lançamento fica no celular e é enviado sozinho depois
