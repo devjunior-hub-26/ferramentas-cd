@@ -2,9 +2,9 @@
 // fraco ou sem sinal. Os dados (servidor do Google) NUNCA são guardados aqui — as
 // leituras offline ficam no IndexedDB da ferramenta.
 //
-// IMPORTANTE: sempre que publicar uma nova versão, aumente VERSAO para os
-// celulares baixarem os arquivos novos.
-const VERSAO = 'v2.7.2';
+// O número da versão fica em assets/js/versao.js.
+importScripts('./assets/js/versao.js');
+const VERSAO = self.VERSAO_APP;
 const CACHE = `ferramentas-cd-${VERSAO}`;
 
 const ARQUIVOS = [
@@ -22,6 +22,7 @@ const ARQUIVOS = [
   './assets/js/tools.js',
   './assets/js/hub.js',
   './assets/js/pwa.js',
+  './assets/js/versao.js',
   './assets/icons/icon.svg',
   './assets/icons/icon-192.png',
   './tools/carregamento/',

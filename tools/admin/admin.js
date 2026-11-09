@@ -34,7 +34,7 @@ function renderUsuarios() {
     const v = vinculoAtivo(u.id);
     return `<tr>
       <td><b>${esc(u.nome)}</b></td><td>${esc(u.login)}</td><td>${PERFIS[u.perfil]}</td>
-      <td>${v ? esc(equipePorId(v.equipe_id)?.nome) : u.perfil === 'admin' ? '—' : '<span class="selo alerta">Sem equipe</span>'}</td>
+      <td>${u.perfil === 'admin' ? '—' : v ? esc(equipePorId(v.equipe_id)?.nome) : '<span class="selo alerta">Sem equipe</span>'}</td>
       <td>${u.ativo ? '<span class="selo sucesso">Ativo</span>' : '<span class="selo neutro">Desativado</span>'}</td>
       <td><button class="btn pequeno secundario" data-editar="${u.id}">Editar</button></td></tr>`;
   }).join('') : '<tr><td colspan="6" class="vazio">Nenhum usuário encontrado.</td></tr>';
@@ -159,7 +159,7 @@ $('#tb-usuarios').addEventListener('click', async (ev) => {
 // Equipes
 // ---------------------------------------------------------------
 function opcoesUsuarios(selecionado = '') {
-  return db.usuarios.filter((u) => u.ativo).map((u) => {
+  return db.usuarios.filter((u) => u.ativo && u.perfil !== 'admin').map((u) => {
     const v = vinculoAtivo(u.id);
     const atual = v ? ` — ${equipePorId(v.equipe_id)?.nome}` : ' — sem equipe';
     return `<option value="${u.id}" ${u.id === selecionado ? 'selected' : ''}>${esc(u.nome)}${esc(atual)}</option>`;
@@ -174,7 +174,7 @@ function renderEquipes() {
 
   $('#lista-equipes').innerHTML = db.equipes.filter((e) => e.ativa || mostrarInativas).map((e) => {
     const membros = db.membros.filter((m) => m.equipe_id === e.id && !m.fim)
-      .map((m) => usuarioPorId(m.usuario_id)).filter(Boolean)
+      .map((m) => usuarioPorId(m.usuario_id)).filter((u) => u && u.perfil !== 'admin')
       .sort((a, b) => a.nome.localeCompare(b.nome));
     const lider = usuarioPorId(e.lider_id);
     return `<div class="cartao equipe-cartao ${e.ativa ? '' : 'inativa'}">

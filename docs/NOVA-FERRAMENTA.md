@@ -46,7 +46,7 @@ No `apps-script/Codigo.gs`:
 
 ## 4. Funcionar offline (opcional)
 
-Inclua os arquivos da nova pasta na lista `ARQUIVOS` do `sw.js` e **aumente a `VERSAO`** (ex.: `v1.0.0` → `v1.1.0`). Os celulares baixam a versão nova na próxima abertura com internet.
+Inclua os arquivos da nova pasta na lista `ARQUIVOS` do `sw.js` e **aumente o número em `assets/js/versao.js`** (ex.: `v1.0.0` → `v1.1.0`). Os celulares baixam a versão nova na próxima abertura com internet.
 
 ## 5. Publique
 

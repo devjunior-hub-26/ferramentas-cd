@@ -26,8 +26,8 @@
 
   <nav class="abas" id="abas" role="tablist">
     <button data-aba="ler" role="tab">Ler QR</button>
-    <button data-aba="minhas" role="tab">Minhas leituras</button>
-    <button data-aba="equipe" role="tab" hidden>Minha equipe</button>
+    <button data-aba="minhas" role="tab">Leituras da equipe</button>
+    <button data-aba="equipe" role="tab" hidden>Corrigir leituras</button>
     <a id="link-painel" class="btn pequeno secundario" href="painel.html" hidden>Painel</a>
   </nav>
 
@@ -72,7 +72,7 @@
       </div>
     </section>
 
-    <!-- MINHAS LEITURAS -->
+    <!-- LEITURAS DA EQUIPE -->
     <section id="aba-minhas" hidden>
       <div class="kpis">
         <div class="kpi"><div class="rotulo">Lançamentos hoje</div><div class="valor" id="k-lancamentos">0</div></div>
@@ -87,7 +87,7 @@
       </table></div>
       <h2 class="mt">Leituras de hoje</h2>
       <div class="tabela-wrap"><table class="tabela">
-        <thead><tr><th>Hora</th><th>Carregamento</th><th>Box</th><th>Transação</th><th>Situação</th></tr></thead>
+        <thead><tr><th>Hora</th><th>Quem lançou</th><th>Carregamento</th><th>Box</th><th>Transação</th><th>Situação</th></tr></thead>
         <tbody id="tb-minhas"></tbody>
       </table></div>
     </section>

@@ -10,6 +10,7 @@ const ehAdmin = perfil.perfil === 'admin';
 
 $('#btn-voltar').innerHTML = icone('voltar');
 $('#btn-leitura').innerHTML = icone('qr');
+$('#btn-leitura').hidden = ehAdmin; // o administrador só acompanha, não lança
 $('#btn-exportar').innerHTML = `${icone('download')} Exportar Excel`;
 $('#t-usuario').textContent = `${perfil.nome} · ${PERFIS[perfil.perfil]}`;
 $$('[data-admin]').forEach((el) => (el.hidden = !ehAdmin));
@@ -118,7 +119,6 @@ async function calcular(f) {
     return t;
   };
   const tempoEquipe = tempos(dados.lancamentos, 'equipe_id');
-  const tempoUsuario = tempos(dados.lancamentos, 'usuario_id');
 
   // Lançamentos (um por caminhão), montados a partir das leituras que passaram nos filtros
   const leiturasDoLanc = new Map();
@@ -133,7 +133,7 @@ async function calcular(f) {
     const destinos = [...new Set(nums.map((n) => c967.get(n)?.destino).filter(Boolean))];
     return {
       ...x, carregamentos: nums, destinos, peso: pesoTotal(nums), qtd: ls.length,
-      tempo: tempoEquipe.get(x.id), tempoUsuario: tempoUsuario.get(x.id),
+      tempo: tempoEquipe.get(x.id),
     };
   }).sort((a, b) => b.salvo_em.localeCompare(a.salvo_em));
 
@@ -148,15 +148,29 @@ async function calcular(f) {
   const porEquipe = [...mapaEq.values()].map((e) => ({ ...e, carregamentos: e.carregs.size, peso: pesoTotal(e.carregs) }))
     .sort((a, b) => b.lancamentos - a.lancamentos || b.carregamentos - a.carregamentos);
 
-  // Produtividade por usuário (tempo entre os lançamentos da própria pessoa)
-  const mapaUs = new Map();
-  const usuario = (l) => {
-    if (!mapaUs.has(l.usuario_id)) mapaUs.set(l.usuario_id, { usuario: l.usuario_nome || '?', login: l.usuario_login || '', equipes: new Set(), lancamentos: 0, tempo: 0, carregs: new Set(), leituras: 0 });
-    return mapaUs.get(l.usuario_id);
+  // Produtividade por usuário: o que a equipe lançou conta para quem estava nela
+  const membros = dados.membros || [];
+  const admins = new Set(dados.admins || []);
+  const pessoasNaHora = (item, quando) => {
+    const p = new Map();
+    for (const m of membros) {
+      if (m.equipe_id === item.equipe_id && m.inicio <= quando && (!m.fim || m.fim > quando)) p.set(m.usuario_id, m);
+    }
+    if (!admins.has(item.usuario_id) && !p.has(item.usuario_id)) p.set(item.usuario_id, item);
+    return [...p.entries()];
   };
-  for (const l of leituras) { const u = usuario(l); u.equipes.add(l.equipe_nome || ''); u.carregs.add(l.carregamento); u.leituras++; }
-  for (const x of lancamentos) { const u = usuario(x); u.lancamentos++; u.tempo += x.tempoUsuario; }
-  const porUsuario = [...mapaUs.values()].map((u) => ({
+  const mapaUs = new Map();
+  const usuario = (id, p) => {
+    if (!mapaUs.has(id)) mapaUs.set(id, { id, usuario: p.usuario_nome || '?', login: p.usuario_login || '', equipes: new Set(), lancamentos: 0, tempo: 0, carregs: new Set(), leituras: 0 });
+    return mapaUs.get(id);
+  };
+  for (const l of leituras) {
+    for (const [id, p] of pessoasNaHora(l, l.lido_em)) { const u = usuario(id, p); u.equipes.add(l.equipe_nome || ''); u.carregs.add(l.carregamento); u.leituras++; }
+  }
+  for (const x of lancamentos) {
+    for (const [id, p] of pessoasNaHora(x, x.salvo_em)) { const u = usuario(id, p); u.lancamentos++; u.tempo += x.tempo; }
+  }
+  const porUsuario = [...mapaUs.values()].filter((u) => !f.usuario || u.id === f.usuario).map((u) => ({
     ...u, equipes: [...u.equipes].join(', '), carregamentos: u.carregs.size, peso: pesoTotal(u.carregs),
   })).sort((a, b) => b.lancamentos - a.lancamentos || b.leituras - a.leituras);
 

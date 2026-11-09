@@ -106,7 +106,7 @@ Cole o código novo no editor, salve e vá em **Implantar → Gerenciar implanta
 
 ### Publicar uma nova versão do site
 
-Altere os arquivos, envie ao GitHub e **aumente `VERSAO` no `sw.js`** (ex.: `v2.0.0` → `v2.0.1`). Sem isso, os celulares continuam usando os arquivos guardados.
+Altere os arquivos, envie ao GitHub e **aumente o número em `assets/js/versao.js`** (ex.: `v2.0.0` → `v2.0.1`). Sem isso, os celulares continuam usando os arquivos guardados. Se o `Codigo.gs` mudou, aumente também `VERSAO_SERVIDOR` nele. O rodapé do app mostra as duas versões: se o servidor aparecer com número antigo, falta implantar a **Nova versão** no Apps Script.
 
 ---
 
@@ -180,7 +180,7 @@ Filtros por período, equipe, usuário e carregamento. Abas:
 - **Lançamentos:** cada caminhão, com os carregamentos, as cidades, o peso, as leituras e o tempo.
 - **Carregamentos:** cada carregamento × equipe com destino, rota, peso, box, usuários, primeira e última leitura.
 
-**Tempo de um lançamento** = de quando o lançamento anterior da equipe foi salvo até quando este foi salvo, no mesmo dia. O primeiro lançamento do dia conta da primeira leitura até salvar. Por usuário, a conta usa só os lançamentos da própria pessoa.
+**Tempo de um lançamento** = de quando o lançamento anterior da equipe foi salvo até quando este foi salvo, no mesmo dia. O primeiro lançamento do dia conta da primeira leitura até salvar. Por usuário, tudo o que a equipe lançou conta para cada pessoa que estava nela naquele momento. O administrador não participa de equipes: ele é o gestor e vê a produção de todos.
 - **Leituras:** todas as leituras individuais.
 - **Divergências** (Admin): lidos que não constam na 967 e carregamentos da 967 que ninguém lançou.
 - **Exportar Excel:** gera um .xlsx com uma aba para cada visão.

@@ -18,7 +18,7 @@ export const FERRAMENTAS = [
     descricao: 'Leia o QR Code das cargas e registre o carregamento da sua equipe.',
     icone: 'caminhao',
     link: 'tools/carregamento/',
-    perfis: ['admin', 'lider', 'carregador'],
+    perfis: ['lider', 'carregador'],
   },
   {
     id: 'carregamento-painel',

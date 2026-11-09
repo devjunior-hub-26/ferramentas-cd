@@ -8,7 +8,7 @@ import { $, esc, toast, iniciarAbas, abrirModal, hora, hojeISO, inicioDoDia, ini
 import { icone } from '../../assets/js/icones.js';
 import * as fila from './fila.js';
 
-const perfil = await exigirLogin(['admin', 'lider', 'carregador']);
+const perfil = await exigirLogin(['lider', 'carregador']); // o administrador só acompanha pelo painel
 
 const MSG_SEM_EQUIPE = 'Você não está em nenhuma equipe. Procure o administrador.';
 const CH_EQUIPE = `carreg-equipe-${perfil.id}`;
@@ -530,7 +530,7 @@ async function sincronizar() {
 }
 
 // ---------------------------------------------------------------
-// Minhas leituras do dia
+// Leituras do dia da equipe (o que um lança aparece para todos)
 // ---------------------------------------------------------------
 async function carregarHistorico() {
   const dia = hojeISO();
@@ -597,9 +597,9 @@ function renderMinhas() {
         else if (x._local) sit = x.status === 'erro' ? '<span class="selo erro">Recusada</span>' : '<span class="selo alerta">Pendente</span>';
         else if (x.cancelada) sit = '<span class="selo neutro">Cancelada</span>';
         else if (x.primeira_do_carregamento) sit = '<span class="selo">Início</span>';
-        return `<tr><td>${hora(x.lido_em)}</td><td><b>${esc(x.carregamento)}</b></td><td>${esc(x.box)}</td><td>${esc(x.transacao)}</td><td>${sit}</td></tr>`;
+        return `<tr><td>${hora(x.lido_em)}</td><td>${esc(x.usuario_nome || perfil.nome)}</td><td><b>${esc(x.carregamento)}</b></td><td>${esc(x.box)}</td><td>${esc(x.transacao)}</td><td>${sit}</td></tr>`;
       }).join('')
-    : '<tr><td colspan="5" class="vazio">Nenhuma leitura hoje.</td></tr>';
+    : '<tr><td colspan="6" class="vazio">Nenhuma leitura hoje.</td></tr>';
 }
 
 // ---------------------------------------------------------------
@@ -702,7 +702,7 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 setInterval(sincronizar, 20000);
-setInterval(() => { if (navigator.onLine) carregarEquipe(); }, 60000);
+setInterval(() => { if (navigator.onLine) { carregarEquipe(); carregarHistorico(); } }, 60000);
 
 atualizarRede();
 // Abre a câmera já com a última equipe conhecida; o servidor confirma em seguida

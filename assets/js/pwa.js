@@ -1,3 +1,15 @@
+import './versao.js';
+import { api } from './api.js';
+
+// Rodapé com as versões, para conferir se a atualização chegou
+const rodape = document.createElement('div');
+rodape.className = 'versao-app';
+rodape.textContent = `App ${self.VERSAO_APP}`;
+document.body.appendChild(rodape);
+api('versao')
+  .then((r) => { rodape.textContent = `App ${self.VERSAO_APP} · Servidor ${r.versao}`; })
+  .catch((e) => { if (e.codigo === 'ACAO_INVALIDA') rodape.textContent += ' · Servidor desatualizado'; });
+
 // Registra o service worker (app instalável e funcionando com sinal fraco).
 if ('serviceWorker' in navigator) {
   const url = new URL('../../sw.js', import.meta.url);

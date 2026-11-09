@@ -22,7 +22,10 @@
 const LOGIN_INICIAL_ADMIN = 'TROQUE-ESTE-LOGIN';
 const SENHA_INICIAL_ADMIN = 'TROQUE-ESTA-SENHA';
 
-const DIAS_SESSAO = 60;          // por quanto tempo o celular fica logado
+// Mostrada no rodapé do app. Aumente sempre que este arquivo mudar.
+const VERSAO_SERVIDOR = 'v2.8.0';
+
+const DIAS_SESSAO = 60;         // por quanto tempo o celular fica logado
 const MAX_TENTATIVAS_LOGIN = 5;  // erros seguidos antes de bloquear por 5 minutos
 
 const TABELAS = {
@@ -82,14 +85,15 @@ class ErroApp extends Error {
 
 // perfis: null = qualquer usuário logado
 const ACOES = {
+  versao: { publica: true, fn: () => ({ versao: VERSAO_SERVIDOR }) },
   login: { publica: true, fn: acaoLogin },
   sair: { fn: acaoSair },
   eu: { fn: (d, u) => perfilPublico(u) },
 
   // Leitura de QR Code
   minhaEquipe: { fn: acaoMinhaEquipe },
-  conferirLeitura: { fn: acaoConferirLeitura },
-  registrarLancamento: { fn: acaoRegistrarLancamento },
+  conferirLeitura: { perfis: ['lider', 'carregador'], fn: acaoConferirLeitura },
+  registrarLancamento: { perfis: ['lider', 'carregador'], fn: acaoRegistrarLancamento },
   minhasLeituras: { fn: acaoMinhasLeituras },
   leiturasEquipe: { perfis: ['admin', 'lider'], fn: acaoLeiturasEquipe },
   corrigirLeitura: { perfis: ['admin', 'lider'], fn: acaoCorrigirLeitura },
@@ -579,9 +583,12 @@ function intervalo(d) {
   return [ini.toISOString(), fim.toISOString()];
 }
 
+/** Leituras da equipe atual da pessoa: o que um lança aparece para todos. */
 function acaoMinhasLeituras(d, u) {
   const [ini, fim] = intervalo(d);
-  return leiturasEntre(ini, fim).filter((l) => l.usuario_id === u.id).reverse().map(leituraPublica);
+  const v = vinculoAtivo(u.id);
+  return leiturasEntre(ini, fim).filter((l) => (v ? l.equipe_id === v.equipe_id : l.usuario_id === u.id))
+    .reverse().map(leituraPublica);
 }
 
 function acaoLeiturasEquipe(d, u) {
@@ -647,7 +654,7 @@ function acaoPainelOpcoes(d, u) {
   }
   return {
     equipes: equipes,
-    usuarios: usuarios.map((x) => ({ id: x.id, nome: x.nome })).sort((a, b) => a.nome.localeCompare(b.nome)),
+    usuarios: usuarios.filter((x) => x.perfil !== 'admin').map((x) => ({ id: x.id, nome: x.nome })).sort((a, b) => a.nome.localeCompare(b.nome)),
   };
 }
 
@@ -661,10 +668,18 @@ function acaoPainelDados(d, u) {
   const minhas = {};
   if (!admin) equipesLideradas(u).forEach((e) => { minhas[e.id] = true; });
 
+  // Quem estava em cada equipe: a produção da equipe conta para todos eles
+  const pessoas = {};
+  ler('Usuarios').forEach((x) => { pessoas[x.id] = x; });
+  const membros = ler('Membros').filter((m) => (admin || minhas[m.equipe_id])
+    && pessoas[m.usuario_id] && pessoas[m.usuario_id].perfil !== 'admin');
+  const contaPara = (usuarioId, l) => l.usuario_id === usuarioId || membros.some((m) => m.usuario_id === usuarioId
+    && m.equipe_id === l.equipe_id && m.inicio <= l.lido_em && (!m.fim || m.fim > l.lido_em));
+
   const leituras = leiturasEntre(ini, fim).filter((l) => !sim(l.cancelada)
     && (admin || minhas[l.equipe_id])
     && (!d.equipe || l.equipe_id === d.equipe)
-    && (!d.usuario || l.usuario_id === d.usuario)
+    && (!d.usuario || contaPara(d.usuario, l))
     && (!d.carregamento || l.carregamento === d.carregamento)).map(leituraPublica);
 
   const lidos = {};
@@ -688,7 +703,14 @@ function acaoPainelDados(d, u) {
   const lancamentos = ler('Lancamentos').filter((l) => l.salvo_em >= ini && l.salvo_em < fim
     && (admin || minhas[l.equipe_id]) && (!d.equipe || l.equipe_id === d.equipe)).map(lancamentoPublico);
 
-  return { leituras: leituras, c967: c967, naoLancados: naoLancados, lancamentos: lancamentos };
+  return {
+    leituras: leituras, c967: c967, naoLancados: naoLancados, lancamentos: lancamentos,
+    membros: membros.map((m) => ({
+      usuario_id: m.usuario_id, usuario_nome: pessoas[m.usuario_id].nome, usuario_login: pessoas[m.usuario_id].login,
+      equipe_id: m.equipe_id, inicio: m.inicio, fim: m.fim || null,
+    })),
+    admins: Object.keys(pessoas).filter((id) => pessoas[id].perfil === 'admin'),
+  };
 }
 
 function acaoSalvarConfig(d) {
@@ -827,10 +849,18 @@ function acaoAtualizarUsuario(d, admin) {
       trocouSenha = true;
     }
     atualizar('Usuarios', u);
+    if (u.perfil === 'admin') tirarAdminDasEquipes(u, admin);
     // Senha nova ou usuário desativado: desconecta os celulares dessa pessoa
     if (trocouSenha || !sim(u.ativo)) encerrarSessoes((s) => s.usuario_id === u.id && s.token_hash !== admin._tokenHash);
     return perfilPublico(u);
   });
+}
+
+/** O administrador é o gestor: não participa nem lidera equipes. */
+function tirarAdminDasEquipes(u, admin) {
+  const v = vinculoAtivo(u.id);
+  if (v) { v.fim = agoraISO(); v.alterado_por = admin.id; atualizar('Membros', v); }
+  equipesLideradas(u).forEach((e) => { e.lider_id = ''; atualizar('Equipes', e); });
 }
 
 function acaoSalvarEquipe(d, admin) {
@@ -866,6 +896,7 @@ function acaoMoverUsuario(d, admin) {
   return comTrava(() => {
     const u = ler('Usuarios').find((x) => x.id === d.usuario_id);
     if (!u) throw new ErroApp('NAO_ENCONTRADO', 'Usuário não encontrado.');
+    if (u.perfil === 'admin') throw new ErroApp('DADOS_INVALIDOS', 'O administrador não faz parte de equipes.');
     const e = equipePorId(d.equipe_id);
     if (!e || !sim(e.ativa)) throw new ErroApp('EQUIPE_INATIVA', 'Equipe inexistente ou desativada.');
     const v = vinculoAtivo(u.id);
