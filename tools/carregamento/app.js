@@ -20,7 +20,7 @@ const estado = {
   lancamento: null,        // { id, leituras: [...] } — caminhão sendo lido agora
   historico: [],           // leituras do dia já no servidor
   pendentes: [],           // lançamentos salvos sem sinal (fila offline)
-  transacoes: new Set(),   // transações já lidas (evita duplicar)
+  jaLidos: new Set(),      // carregamentos já lidos (evita duplicar)
   lideradas: [],           // equipes que o usuário lidera
   aba: 'ler',
   salvando: false,
@@ -164,26 +164,24 @@ function processar(texto) {
   }
   if (!estado.equipe) return mostrarResultado('erro', 'Leitura bloqueada', MSG_SEM_EQUIPE, d);
   if (estado.salvando) return mostrarResultado('alerta', 'Aguarde', 'O lançamento está sendo salvo. Leia de novo em instantes.', d);
-  if (estado.transacoes.has(d.transacao)) {
-    return mostrarResultado('erro', 'Transação já lida', `A transação ${d.transacao} já foi registrada.`, d);
+  if (estado.jaLidos.has(d.carregamento)) {
+    return mostrarResultado('erro', 'Carregamento já lido', `O carregamento ${d.carregamento} já foi lançado.`, d);
   }
 
   estado.lancamento ??= { id: crypto.randomUUID(), leituras: [] };
   const lanc = estado.lancamento;
-  const novoNoCaminhao = !lanc.leituras.some((x) => x.carregamento === d.carregamento);
-  const inicio = novoNoCaminhao && !estado.historico.some((h) => h.carregamento === d.carregamento && !h.cancelada);
   const item = {
     client_id: crypto.randomUUID(), ...d, lido_em: new Date().toISOString(),
     conferencia: navigator.onLine ? 'conferindo' : 'sem_sinal', msg: '', destino: destinoConhecido(d.carregamento),
   };
   lanc.leituras.push(item);
-  estado.transacoes.add(d.transacao);
+  estado.jaLidos.add(d.carregamento);
   salvarLancamentoAtual();
   renderLancamento();
 
   const n = lanc.leituras.length;
-  mostrarResultado('ok', inicio ? 'INÍCIO DO CARREGAMENTO' : novoNoCaminhao ? 'Novo carregamento no caminhão' : 'Leitura adicionada',
-    `${n} leitura(s) no lançamento · toque em "Salvar lançamento" ao terminar o caminhão`, d, inicio || novoNoCaminhao);
+  mostrarResultado('ok', 'Carregamento adicionado',
+    `${n} carregamento(s) no lançamento · toque em "Salvar lançamento" ao terminar o caminhão`, d);
   if (item.conferencia === 'conferindo') conferir(item);
 }
 
@@ -221,7 +219,7 @@ function nomeEquipe(nome) {
 
 function classificarErro(e) {
   switch (e.codigo) {
-    case 'TRANSACAO_DUPLICADA': return { tipo: 'negocio', titulo: 'Transação já lida', msg: e.message };
+    case 'CARREGAMENTO_DUPLICADO': return { tipo: 'negocio', titulo: 'Carregamento já lido', msg: e.message };
     case 'SEM_EQUIPE': return { tipo: 'negocio', titulo: 'Leitura bloqueada', msg: MSG_SEM_EQUIPE, recarregarEquipe: true };
     case 'OUTRA_EQUIPE': return { tipo: 'negocio', titulo: 'Carregamento de outra equipe', msg: `Carregamento já iniciado pela ${nomeEquipe(e.detalhe)}.` };
     case 'USUARIO_INATIVO': return { tipo: 'negocio', titulo: 'Usuário desativado', msg: e.message };
@@ -301,7 +299,7 @@ $('#tb-lanc-atual').addEventListener('click', (ev) => {
   const item = lanc?.leituras.find((x) => x.client_id === id);
   if (!item || estado.salvando) return;
   lanc.leituras = lanc.leituras.filter((x) => x !== item);
-  estado.transacoes.delete(item.transacao);
+  estado.jaLidos.delete(item.carregamento);
   if (!lanc.leituras.length) estado.lancamento = null;
   salvarLancamentoAtual();
   renderLancamento();
@@ -312,7 +310,7 @@ $('#btn-descartar-lanc').addEventListener('click', () => {
   const lanc = estado.lancamento;
   if (!lanc || estado.salvando) return;
   if (!confirm(`Descartar o lançamento atual com ${lanc.leituras.length} leitura(s)? Elas não serão salvas.`)) return;
-  lanc.leituras.forEach((x) => estado.transacoes.delete(x.transacao));
+  lanc.leituras.forEach((x) => estado.jaLidos.delete(x.carregamento));
   estado.lancamento = null;
   salvarLancamentoAtual();
   renderLancamento();
@@ -454,7 +452,7 @@ async function atualizarPendentes() {
 
   $('#problemas').hidden = erros.length === 0;
   $('#lista-problemas').innerHTML = erros.map((i) => {
-    const recusadas = (i.erros || []).map((er) => `<li>Transação ${esc(er.transacao)}: ${esc(er.msg)}</li>`).join('');
+    const recusadas = (i.erros || []).map((er) => `<li>Carregamento ${esc(er.carregamento || er.transacao)}: ${esc(er.msg)}</li>`).join('');
     return `<div class="problema">
       <div><b>Lançamento de ${hora(i.salvo_em)} · ${i.leituras.length} leitura(s)</b><br>
         <small class="suave">${esc(i.erro)}</small>${recusadas ? `<ul class="recusadas">${recusadas}</ul>` : ''}</div>
@@ -466,7 +464,7 @@ async function atualizarPendentes() {
     </div>`;
   }).join('');
 
-  for (const i of estado.pendentes) i.leituras.forEach((l) => estado.transacoes.add(l.transacao));
+  for (const i of estado.pendentes) i.leituras.forEach((l) => estado.jaLidos.add(l.carregamento));
   renderMinhas();
 }
 
@@ -478,12 +476,12 @@ $('#lista-problemas').addEventListener('click', async (ev) => {
   if (b.dataset.descartar) {
     if (!confirm(`Descartar este lançamento com ${item.leituras.length} leitura(s)?`)) return;
     await fila.remover(item.client_id);
-    item.leituras.forEach((l) => estado.transacoes.delete(l.transacao));
+    item.leituras.forEach((l) => estado.jaLidos.delete(l.carregamento));
   } else {
     let leituras = item.leituras;
     if (b.dataset.tirarRecusadas) {
       const fora = new Set((item.erros || []).map((er) => er.client_id));
-      leituras.filter((l) => fora.has(l.client_id)).forEach((l) => estado.transacoes.delete(l.transacao));
+      leituras.filter((l) => fora.has(l.client_id)).forEach((l) => estado.jaLidos.delete(l.carregamento));
       leituras = leituras.filter((l) => !fora.has(l.client_id));
     }
     if (!leituras.length) await fila.remover(item.client_id);
@@ -535,10 +533,10 @@ async function carregarHistorico() {
       estado.historico = c?.dia === dia ? c.itens : [];
     } catch { estado.historico = []; }
   }
-  estado.transacoes = new Set([
-    ...estado.historico.filter((h) => !h.cancelada).map((h) => h.transacao),
-    ...estado.pendentes.flatMap((p) => p.leituras.map((l) => l.transacao)),
-    ...(estado.lancamento?.leituras || []).map((l) => l.transacao),
+  estado.jaLidos = new Set([
+    ...estado.historico.filter((h) => !h.cancelada).map((h) => h.carregamento),
+    ...estado.pendentes.flatMap((p) => p.leituras.map((l) => l.carregamento)),
+    ...(estado.lancamento?.leituras || []).map((l) => l.carregamento),
   ]);
   renderMinhas();
 }

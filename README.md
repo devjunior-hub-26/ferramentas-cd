@@ -134,11 +134,11 @@ Um **lançamento** é um caminhão. Como um caminhão leva vários carregamentos
 
 - Formato: `carregamento|box|transação` (ex.: `3354419|3|2734182`), os três numéricos.
 - Leitura inválida → aviso vermelho, som de erro e nada entra no lançamento.
-- Leitura válida → vibração, bipe e a leitura entra no **lançamento atual**, que mostra cada carregamento com a cidade (da 967) e quantas leituras teve. A primeira leitura de um carregamento pela equipe mostra **INÍCIO DO CARREGAMENTO**.
-- Com sinal, o servidor confere cada leitura na hora (transação repetida, carregamento de outra equipe). Uma leitura recusada fica vermelha e precisa ser tirada (botão **Tirar**) antes de salvar.
+- Leitura válida → vibração, bipe e a leitura entra no **lançamento atual**, que mostra cada carregamento com a cidade (da 967).
+- Com sinal, o servidor confere cada leitura na hora (carregamento repetido, carregamento de outra equipe). Uma leitura recusada fica vermelha e precisa ser tirada (botão **Tirar**) antes de salvar.
 - **Salvar lançamento** grava tudo de uma vez. Se alguma leitura for recusada nesse momento, nada é gravado e ela fica marcada para tirar.
 - O lançamento aberto fica guardado no celular: fechar o app ou ficar sem bateria não perde as leituras.
-- A mesma transação não pode ser lida duas vezes (verificado no celular e no servidor).
+- O mesmo número de carregamento não pode ser lançado duas vezes (verificado no celular e no servidor). Box e transação podem se repetir.
 - Se a etiqueta estiver danificada, o botão **Digitar** permite informar os números à mão.
 - A equipe **não é escolhida pelo carregador**: o servidor grava a equipe em que ele estava no momento da leitura (pelo histórico de composição). Sem equipe, a leitura é bloqueada com "Você não está em nenhuma equipe. Procure o administrador."
 

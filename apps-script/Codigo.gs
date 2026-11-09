@@ -449,10 +449,10 @@ function acaoConferirLeitura(d, u) {
   const l = validarLeitura(d);
   const equipeId = equipeNoMomento(u.id, agoraISO());
   if (!equipeId) throw new ErroApp('SEM_EQUIPE', 'Você não está em nenhuma equipe. Procure o administrador.');
-  if (buscar('Leituras', 'transacao', l.transacao).some((x) => !sim(x.cancelada))) {
-    throw new ErroApp('TRANSACAO_DUPLICADA', 'Esta transação já foi registrada anteriormente (por você ou por outro usuário).');
-  }
   const doCarregamento = buscar('Leituras', 'carregamento', l.carregamento).filter((x) => !sim(x.cancelada));
+  if (doCarregamento.some((x) => x.equipe_id === equipeId)) {
+    throw new ErroApp('CARREGAMENTO_DUPLICADO', 'O carregamento ' + l.carregamento + ' já foi lançado anteriormente.');
+  }
   const outra = doCarregamento.filter((x) => x.equipe_id !== equipeId)
     .sort((a, b) => (a.lido_em < b.lido_em ? -1 : 1))[0];
   let aviso = null;
@@ -462,7 +462,6 @@ function acaoConferirLeitura(d, u) {
     aviso = 'OUTRA_EQUIPE:' + nomeOutra;
   }
   return {
-    primeira: !doCarregamento.some((x) => x.equipe_id === equipeId),
     aviso: aviso,
     destino: destino967(l.carregamento),
   };
@@ -502,7 +501,6 @@ function acaoRegistrarLancamento(d, u) {
     const multiplas = permitirMultiplas();
 
     // Uma leitura de colunas inteiras é bem mais rápida que uma busca por leitura
-    const colTransacao = coluna('Leituras', 'transacao');
     const colCarregamento = coluna('Leituras', 'carregamento');
     const colEquipe = coluna('Leituras', 'equipe_id');
     const colNomeEquipe = coluna('Leituras', 'equipe_nome');
@@ -510,13 +508,9 @@ function acaoRegistrarLancamento(d, u) {
     const colCancelada = coluna('Leituras', 'cancelada');
     const noLote = {};
     lista.forEach((x) => { noLote[String(x.carregamento || '').trim()] = true; });
-    const transacoesUsadas = {};
     const carregamentos = {}; // número → { outra: nome da 1ª outra equipe, daEquipe: já tem leitura desta equipe }
-    colTransacao.forEach((t, i) => {
-      if (colCancelada[i] === SIM) return;
-      transacoesUsadas[t] = true;
-      const c = colCarregamento[i];
-      if (!noLote[c]) return;
+    colCarregamento.forEach((c, i) => {
+      if (colCancelada[i] === SIM || !noLote[c]) return;
       const info = carregamentos[c] || (carregamentos[c] = { outra: null, outraEm: '', daEquipe: false });
       if (colEquipe[i] === equipeId) info.daEquipe = true;
       else if (!info.outra || colLido[i] < info.outraEm) {
@@ -529,7 +523,7 @@ function acaoRegistrarLancamento(d, u) {
     const leituras = [];
     const noLancamento = {};
     lista.forEach((x) => {
-      const falha = (codigo, msg) => erros.push({ client_id: x.client_id, transacao: x.transacao, erro: codigo, msg: msg });
+      const falha = (codigo, msg) => erros.push({ client_id: x.client_id, carregamento: x.carregamento, erro: codigo, msg: msg });
       let l;
       let lido;
       try {
@@ -540,10 +534,10 @@ function acaoRegistrarLancamento(d, u) {
       }
       const cid = String(x.client_id || '').trim().toLowerCase();
       if (!RE_UUID.test(cid)) return falha('FORMATO_INVALIDO', 'Identificador da leitura inválido.');
-      if (noLancamento[l.transacao]) return falha('TRANSACAO_DUPLICADA', 'Transação lida duas vezes neste lançamento.');
-      noLancamento[l.transacao] = true;
-      if (transacoesUsadas[l.transacao]) return falha('TRANSACAO_DUPLICADA', 'Transação ' + l.transacao + ' já registrada anteriormente.');
+      if (noLancamento[l.carregamento]) return falha('CARREGAMENTO_DUPLICADO', 'Carregamento lido duas vezes neste lançamento.');
+      noLancamento[l.carregamento] = true;
       const info = carregamentos[l.carregamento] || (carregamentos[l.carregamento] = { outra: null, daEquipe: false });
+      if (info.daEquipe) return falha('CARREGAMENTO_DUPLICADO', 'Já lançado anteriormente.');
       let aviso = '';
       if (info.outra) {
         if (!multiplas) return falha('OUTRA_EQUIPE', 'Carregamento ' + l.carregamento + ' já iniciado pela ' + info.outra + '.');
@@ -553,10 +547,9 @@ function acaoRegistrarLancamento(d, u) {
         id: cid, carregamento: l.carregamento, box: l.box, transacao: l.transacao,
         usuario_id: u.id, usuario_nome: u.nome, equipe_id: equipeId, equipe_nome: nomeEquipe,
         lido_em: lido.toISOString(), recebido_em: agora.toISOString(),
-        primeira_do_carregamento: info.daEquipe ? NAO : SIM,
+        primeira_do_carregamento: SIM,
         aviso: aviso, cancelada: NAO, lancamento_id: id,
       });
-      info.daEquipe = true;
     });
     if (erros.length) {
       throw new ErroApp('LANCAMENTO_RECUSADO', erros.length + ' leitura(s) recusada(s). Tire essas leituras e salve de novo.', erros);
@@ -614,6 +607,10 @@ function acaoCorrigirLeitura(d, u) {
       const carregamento = String(d.carregamento || '').trim();
       const box = String(d.box || '').trim();
       if (!RE_NUM20.test(carregamento) || !RE_NUM10.test(box)) throw new ErroApp('FORMATO_INVALIDO', 'Carregamento e box devem ter só números.');
+      if (carregamento !== l.carregamento && buscar('Leituras', 'carregamento', carregamento)
+        .some((x) => !sim(x.cancelada) && x.equipe_id === l.equipe_id)) {
+        throw new ErroApp('CARREGAMENTO_DUPLICADO', 'O carregamento ' + carregamento + ' já foi lançado anteriormente.');
+      }
       if (carregamento !== l.carregamento && !permitirMultiplas()) {
         const outra = outraEquipeNoCarregamento(carregamento, l.equipe_id, l.id);
         if (outra) {
