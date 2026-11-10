@@ -1,4 +1,4 @@
-// Administração: usuários, equipes e histórico de composição (somente Admin).
+// Administração: criação de equipes e histórico de composição (somente Admin).
 import { api, exigirLogin, mensagemErro, PERFIS } from '../../assets/js/auth.js';
 import { $, esc, toast, iniciarAbas, abrirModal, dataHora } from '../../assets/js/ui.js';
 import { icone } from '../../assets/js/icones.js';
@@ -26,19 +26,9 @@ async function carregarTudo() {
 // ---------------------------------------------------------------
 // Equipes
 // ---------------------------------------------------------------
-function opcoesUsuarios(selecionado = '') {
-  return db.usuarios.filter((u) => u.ativo && u.perfil !== 'admin').map((u) => {
-    const v = vinculoAtivo(u.id);
-    const atual = v ? ` — ${equipePorId(v.equipe_id)?.nome}` : ' — sem equipe';
-    return `<option value="${u.id}" ${u.id === selecionado ? 'selected' : ''}>${esc(u.nome)}${esc(atual)}</option>`;
-  }).join('');
-}
-
+// Aqui só se criam as equipes. As pessoas são ligadas em Colaboradores e Acessos.
 function renderEquipes() {
   const mostrarInativas = $('#mostrar-inativas').checked;
-  const ativas = db.equipes.filter((e) => e.ativa);
-  const opcoesMover = (atual) => '<option value="">Mover para...</option>' + ativas
-    .filter((e) => e.id !== atual).map((e) => `<option value="${e.id}">${esc(e.nome)}</option>`).join('');
 
   $('#lista-equipes').innerHTML = db.equipes.filter((e) => e.ativa || mostrarInativas).map((e) => {
     const membros = db.membros.filter((m) => m.equipe_id === e.id && !m.fim)
@@ -51,17 +41,7 @@ function renderEquipes() {
         <span class="selo">${membros.length} pessoa(s)</span>
       </div>
       <p class="suave" style="margin:6px 0 10px">Líder: <b>${lider ? esc(lider.nome) : '—'}</b></p>
-      ${membros.map((u) => `<div class="membro">
-          <span>${esc(u.nome)} ${u.id === e.lider_id ? '<span class="selo">Líder</span>' : ''}</span>
-          <span class="linha">
-            <select data-mover="${u.id}" aria-label="Mover ${esc(u.nome)}">${opcoesMover(e.id)}</select>
-            <button class="btn pequeno secundario" data-remover="${u.id}" title="Tirar da equipe">Tirar</button>
-          </span>
-        </div>`).join('') || '<p class="suave">Nenhum membro.</p>'}
-      ${e.ativa ? `<div class="add-membro">
-          <select class="entrada" data-add-select="${e.id}"><option value="">Adicionar pessoa...</option>${opcoesUsuarios()}</select>
-          <button class="btn pequeno" data-add="${e.id}">Adicionar</button>
-        </div>` : ''}
+      <p class="suave" style="margin:0"><small>${membros.map((u) => esc(u.nome)).join(', ') || 'Nenhum membro.'}</small></p>
       <div class="btns mt">
         <button class="btn pequeno secundario" data-editar-equipe="${e.id}">Editar</button>
         ${e.ativa
@@ -74,7 +54,7 @@ function renderEquipes() {
   const semEquipe = db.usuarios.filter((u) => u.ativo && u.perfil !== 'admin' && !vinculoAtivo(u.id));
   $('#sem-equipe').hidden = semEquipe.length === 0;
   $('#sem-equipe').innerHTML = `<h3>Sem equipe (${semEquipe.length})</h3><p class="suave" style="margin:0">
-    ${semEquipe.map((u) => esc(u.nome)).join(', ')}<br><small>Essas pessoas não conseguem lançar leituras.</small></p>`;
+    ${semEquipe.map((u) => esc(u.nome)).join(', ')}<br><small>Essas pessoas não conseguem lançar leituras. Escolha a equipe delas em Colaboradores e Acessos.</small></p>`;
 }
 
 $('#mostrar-inativas').addEventListener('change', renderEquipes);
@@ -83,45 +63,19 @@ async function mover(usuarioId, equipeId) {
   await api('moverUsuario', { usuario_id: usuarioId, equipe_id: equipeId });
 }
 
-$('#lista-equipes').addEventListener('change', async (ev) => {
-  const sel = ev.target.closest('[data-mover]');
-  if (!sel || !sel.value) return;
-  const u = usuarioPorId(sel.dataset.mover);
-  const destino = equipePorId(sel.value);
-  if (!confirm(`Mover ${u.nome} para ${destino.nome}?`)) { sel.value = ''; return; }
-  try {
-    await mover(u.id, destino.id);
-    toast(`${u.nome} agora está na ${destino.nome}.`, 'sucesso');
-    await carregarTudo();
-  } catch (e) { toast(mensagemErro(e), 'erro'); }
-});
-
 $('#lista-equipes').addEventListener('click', async (ev) => {
   const alvo = ev.target.closest('button');
   if (!alvo) return;
   const d = alvo.dataset;
   try {
-    if (d.add) {
-      const usuarioId = $(`[data-add-select="${d.add}"]`).value;
-      if (!usuarioId) return toast('Escolha a pessoa.', 'alerta');
-      const v = vinculoAtivo(usuarioId);
-      if (v?.equipe_id === d.add) return toast('Essa pessoa já está nesta equipe.', 'alerta');
-      if (v && !confirm(`${usuarioPorId(usuarioId).nome} está na ${equipePorId(v.equipe_id)?.nome}. Mover para ${equipePorId(d.add).nome}?`)) return;
-      await mover(usuarioId, d.add);
-      toast('Pessoa adicionada à equipe.', 'sucesso');
-    } else if (d.remover) {
-      const u = usuarioPorId(d.remover);
-      if (!confirm(`Tirar ${u.nome} da equipe? Ela ficará sem equipe e não conseguirá lançar leituras.`)) return;
-      await api('removerUsuario', { usuario_id: u.id });
-      toast(`${u.nome} saiu da equipe.`, 'sucesso');
-    } else if (d.desativar) {
+    if (d.desativar) {
       const e = equipePorId(d.desativar);
       if (!confirm(`Desativar a ${e.nome}? Todos os membros ficarão sem equipe.`)) return;
       await api('desativarEquipe', { equipe_id: e.id });
       toast('Equipe desativada.', 'sucesso');
     } else if (d.reativar) {
       await api('reativarEquipe', { equipe_id: d.reativar });
-      toast('Equipe reativada. Adicione os membros.', 'sucesso');
+      toast('Equipe reativada. Escolha as pessoas em Colaboradores e Acessos.', 'sucesso');
     } else if (d.editarEquipe) {
       return editarEquipe(equipePorId(d.editarEquipe));
     } else return;

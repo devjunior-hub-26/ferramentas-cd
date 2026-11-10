@@ -12,7 +12,7 @@ api('versao')
 
 // Nenhuma tabela rola para o lado: cada célula guarda o nome da sua coluna e,
 // quando a tabela não cabe na largura, cada linha vira um cartão com esses rótulos.
-const LARGURA_POR_COLUNA = 105;
+const LARGURA_POR_COLUNA = 95;
 const observadas = new WeakSet();
 let ajusteMarcado = false;
 

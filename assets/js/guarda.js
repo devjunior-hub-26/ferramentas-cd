@@ -6,4 +6,6 @@ if (window.top === window) {
   localStorage.removeItem('cd-sessao');
   localStorage.removeItem('cd-perfil');
   location.replace(new URL('../../', document.currentScript.src).href);
+} else {
+  document.documentElement.classList.add('em-quadro');
 }

@@ -40,7 +40,11 @@ try { $('#tela-app').classList.toggle('recolhido', localStorage.getItem(CHAVE_RE
 
 $('#btn-menu').addEventListener('click', () => {
   const app = $('#tela-app');
-  if (celular.matches) { app.classList.toggle('aberto'); return; }
+  if (celular.matches) {
+    app.classList.toggle('aberto');
+    document.querySelector('.menu-item.ativo')?.scrollIntoView({ block: 'nearest' });
+    return;
+  }
   const recolhido = app.classList.toggle('recolhido');
   try { localStorage.setItem(CHAVE_RECOLHIDO, recolhido ? '1' : '0'); } catch { /* sem storage */ }
 });
@@ -53,8 +57,29 @@ function montarMenu(perfil) {
   itens = grupos.flatMap((g) => g.itens.map((i) => ({ ...i, grupo: g.grupo })));
   $('#menu-itens').innerHTML = grupos.map((g) => `<div class="menu-grupo">${esc(g.grupo)}</div>${g.itens.map((i) => (i.emBreve
     ? `<div class="menu-item em-breve" title="${esc(i.nome)} (em breve)">${icone(i.icone)}<span>${esc(i.nome)}</span></div>`
-    : `<button class="menu-item" data-item="${esc(i.id)}" title="${esc(i.nome)}">${icone(i.icone)}<span>${esc(i.nome)}</span></button>`)).join('')}`).join('');
+    : `<button class="menu-item" data-item="${esc(i.id)}" title="${esc(i.nome)}">${icone(i.icone)}<span>${esc(i.nome)}</span></button>`)).join('')}`).join('')
+    + '<div class="menu-pilula" id="menu-pilula" aria-hidden="true"></div>';
 }
+
+// A seleção é uma peça de vidro que desliza até o item ativo
+function moverPilula() {
+  const ativo = document.querySelector('.menu-item.ativo');
+  const p = $('#menu-pilula');
+  if (!p) return;
+  p.style.opacity = ativo ? 1 : 0;
+  if (ativo) {
+    p.style.height = `${ativo.offsetHeight}px`;
+    p.style.transform = `translateY(${ativo.offsetTop}px)`;
+  }
+}
+window.addEventListener('resize', moverPilula);
+
+// O conteúdo das ferramentas começa abaixo da barra translúcida
+function passarAlturaBarra() {
+  const barra = $('.barra');
+  quadro?.contentDocument?.documentElement.style.setProperty('--barra', `${barra.offsetTop + barra.offsetHeight + 6}px`);
+}
+window.addEventListener('resize', passarAlturaBarra);
 
 $('#menu-itens').addEventListener('click', (ev) => {
   const b = ev.target.closest('[data-item]');
@@ -76,6 +101,7 @@ function abrirItem(item, { historico = true } = {}) {
     quadro.dataset.pagina = url.pathname;
     quadro.allow = 'camera; clipboard-write; web-share';
     quadro.src = url.href;
+    quadro.addEventListener('load', passarAlturaBarra);
     $('#sync-barra').hidden = true;
     $('#area').appendChild(quadro);
   }
@@ -84,6 +110,7 @@ function abrirItem(item, { historico = true } = {}) {
   $('#t-grupo').textContent = item.grupo;
   $('#t-tela').textContent = item.nome;
   document.querySelectorAll('.menu-item[data-item]').forEach((b) => b.classList.toggle('ativo', b.dataset.item === item.id));
+  moverPilula();
   $('#tela-app').classList.remove('aberto');
   sessionStorage.setItem(CHAVE_ABERTA, item.id);
   if (historico) history.pushState({ item: item.id }, '');

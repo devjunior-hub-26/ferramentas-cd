@@ -31,6 +31,12 @@
   --vao: 20px;                  /* margem das telas */
   --fonte: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, Arial, sans-serif;
   --mola: cubic-bezier(.22, 1, .36, 1);
+
+  /* Vidro polido: barra superior e faixa de filtros */
+  --vidro-fundo: linear-gradient(115deg, rgba(255, 255, 255, .34), rgba(255, 255, 255, 0) 42%), linear-gradient(180deg, rgba(255, 255, 255, .56), rgba(255, 255, 255, .36));
+  --vidro-filtro: blur(26px) saturate(190%) brightness(1.04);
+  --vidro-borda: rgba(255, 255, 255, .68);
+  --vidro-sombra: inset 0 1px 0 rgba(255, 255, 255, .92), inset 0 -1px 0 rgba(255, 255, 255, .3), 0 6px 20px rgba(16, 24, 40, .1), 0 0 0 .5px rgba(16, 24, 40, .07);
 }
 /* Telas de toque: alvos maiores, para uso com luva */
 @media (pointer: coarse) { :root { --toque: 52px; --toque-p: 44px; } }
@@ -62,18 +68,31 @@ img, svg { max-width: 100%; }
 /* Título, abas e voltar agora ficam no menu e na barra do sistema */
 .topo, .abas { display: none !important; }
 
+/* Dentro do sistema o conteúdo rola por baixo da barra translúcida */
+.em-quadro { --barra: 70px; }
+.em-quadro body { padding-top: var(--barra); }
+@media print { .em-quadro body { padding-top: 0; } }
+
 /* ---------- Conteúdo ---------- */
 .conteudo { padding: var(--vao); margin: 0 auto; }
 .conteudo.estreito { max-width: 520px; }
 
 /* ---------- Filtros fixos no topo ---------- */
 .filtros-fixos {
-  position: sticky; top: 0; z-index: 15;
-  margin: calc(var(--vao) * -1) calc(var(--vao) * -1) 14px;
-  padding: 10px var(--vao);
-  background: var(--branco);
-  border-bottom: 1px solid var(--borda);
-  box-shadow: 0 2px 4px rgba(16, 24, 40, .04);
+  position: sticky; top: var(--barra, 0px); z-index: 15;
+  margin: calc(var(--vao) * -1) calc(12px - var(--vao)) 14px;
+  padding: 10px 14px;
+  border-radius: 16px;
+  background: var(--vidro-fundo);
+  -webkit-backdrop-filter: var(--vidro-filtro);
+  backdrop-filter: var(--vidro-filtro);
+  border: 1px solid var(--vidro-borda);
+  box-shadow: var(--vidro-sombra);
+}
+.filtros-fixos .campo input, .filtros-fixos .campo select { background: rgba(255, 255, 255, .62); border-color: rgba(120, 130, 155, .42); }
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .filtros-fixos { background: var(--branco); -webkit-backdrop-filter: none; backdrop-filter: none; border-color: var(--borda); }
+  .filtros-fixos .campo input, .filtros-fixos .campo select { background: var(--branco); }
 }
 .filtros-fixos summary {
   display: flex; align-items: center; justify-content: space-between; min-height: 32px;
@@ -231,3 +250,7 @@ dialog.modal::backdrop { background: rgba(16, 24, 40, .45); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
 }
+
+/* Janelas abrem abaixo da barra do sistema */
+.em-quadro dialog.modal { inset: var(--barra) 0 0 0; max-height: calc(100vh - var(--barra) - 24px); }
+@media (max-width: 640px) { .em-quadro dialog.modal { max-height: calc(100vh - var(--barra) - 8px); } }

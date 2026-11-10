@@ -41,6 +41,8 @@ let colaboradores = [];
 let chamada = {};
 let historico = [];
 let contas = []; // contas de acesso sem colaborador ligado
+let equipes = []; // equipes ativas
+let vinculos = {}; // conta → equipe atual
 let editandoConta = null;
 let abaAtual = 'org';
 let abasProntas = false;
@@ -67,7 +69,7 @@ const hojeArquivo = () => hojeISO();
 // as marcações feitas sem sinal até conseguir enviar.
 function guardarCopia() {
   try {
-    localStorage.setItem(CHAVE, JSON.stringify({ employees: colaboradores, attendance: chamada, history: historico, contas, pendentes }));
+    localStorage.setItem(CHAVE, JSON.stringify({ employees: colaboradores, attendance: chamada, history: historico, contas, equipes, vinculos, pendentes }));
   } catch { /* sem espaço: os dados continuam no servidor */ }
 }
 
@@ -162,6 +164,15 @@ function aplicarEstado(estado) {
   colaboradores.forEach((e) => { chamada[e.Chapa] = normalizarStatus(salvo[e.Chapa]); });
   historico = Array.isArray(estado.history) ? historicoValido(estado.history) : [];
   contas = Array.isArray(estado.contas) ? estado.contas : [];
+  equipes = Array.isArray(estado.equipes) ? estado.equipes : [];
+  vinculos = estado.vinculos || {};
+}
+
+// Equipes ativas e a equipe atual de cada conta
+function resumoEquipes(adm) {
+  const v = {};
+  adm.membros.forEach((m) => { if (!m.fim) v[m.usuario_id] = m.equipe_id; });
+  return { equipes: adm.equipes.filter((e) => e.ativa).map((e) => ({ id: e.id, nome: e.nome })), vinculos: v };
 }
 
 // Marcações ainda não enviadas valem mais do que o que veio do servidor.
@@ -190,7 +201,8 @@ function mostrarAviso(texto) {
 async function carregarDoServidor() {
   try {
     await enviarPendentes();
-    aplicarEstado(await api('expedicaoDados'));
+    const [dados, adm] = await Promise.all([api('expedicaoDados'), api('adminListar')]);
+    aplicarEstado({ ...dados, ...resumoEquipes(adm) });
     servidorRespondeu = true;
     reaplicarPendentes();
     mostrarAviso('');
@@ -724,13 +736,23 @@ function renderHierarquia() {
   const setor = $('#f-cfg-setor').value;
   const acesso = $('#f-cfg-acesso').value;
   const situacao = (e) => (!e.Usuario ? 'sem' : e.Usuario.ativo ? 'com' : 'bloq');
+  const naEquipe = (e) => e.Usuario && vinculos[e.Usuario.id];
+  const podeTerEquipe = (e) => e.Usuario?.ativo && e.Usuario.perfil !== 'admin';
+  const filtroEq = $('#f-cfg-equipe');
+  const eqAtual = filtroEq.value || 'all';
+  filtroEq.innerHTML = '<option value="all">Todas</option><option value="sem">Sem equipe</option>'
+    + equipes.map((x) => `<option value="${esc(x.id)}">${esc(x.nome)}</option>`).join('');
+  filtroEq.value = eqAtual === 'all' || eqAtual === 'sem' || equipes.some((x) => x.id === eqAtual) ? eqAtual : 'all';
+  const equipeFiltro = filtroEq.value;
   $('#cfg-kpis').innerHTML = kpi('Colaboradores', colaboradores.length)
     + kpi('Com acesso', colaboradores.filter((e) => situacao(e) === 'com').length)
     + kpi('Sem acesso', colaboradores.filter((e) => situacao(e) === 'sem').length)
-    + kpi('Bloqueados', colaboradores.filter((e) => situacao(e) === 'bloq').length);
-  const valor = (e) => ({ NIVEL: nivelNum(e.NIVEL), funcao: funcao(e), Admissao: e.Admissao || '' }[colOrdem] ?? e[colOrdem]);
+    + kpi('Bloqueados', colaboradores.filter((e) => situacao(e) === 'bloq').length)
+    + kpi('Sem equipe', colaboradores.filter((e) => podeTerEquipe(e) && !naEquipe(e)).length);
+  const valor =(e) => ({ NIVEL: nivelNum(e.NIVEL), funcao: funcao(e), Admissao: e.Admissao || '' }[colOrdem] ?? e[colOrdem]);
   const lista = colaboradores
     .filter((e) => (setor === 'all' || e.Setor === setor) && (acesso === 'all' || situacao(e) === acesso))
+    .filter((e) => equipeFiltro === 'all' || (equipeFiltro === 'sem' ? podeTerEquipe(e) && !naEquipe(e) : naEquipe(e) === equipeFiltro))
     .filter((e) => e.Nome.toLowerCase().includes(q) || funcao(e).toLowerCase().includes(q) || e.Setor.toLowerCase().includes(q) || String(e.Chapa).includes(q) || (e.Usuario?.login || '').includes(q))
     .sort((a, b) => {
       const va = valor(a), vb = valor(b);
@@ -751,11 +773,14 @@ function renderHierarquia() {
     <td>${e.Admissao ? dataBR(e.Admissao) : '<span class="selo alerta">Não informada</span>'}</td>
     <td>${e.FeriasMes !== null ? `<span class="selo escuro">${MESES_NOME[e.FeriasMes]}</span>` : '—'}</td>
     <td class="acesso-info">${seloAcesso(e.Usuario)}</td>
+    <td>${podeTerEquipe(e)
+    ? `<select class="sel-equipe" data-usuario="${esc(e.Usuario.id)}" aria-label="Equipe de ${esc(e.Nome)}">${opcoesEquipe(vinculos[e.Usuario.id])}</select>`
+    : '<span class="suave">—</span>'}</td>
     <td><div class="acoes">
       <button class="btn pequeno secundario" data-acao="editarColaborador" data-chapa="${e.Chapa}">Editar</button>
       <button class="btn pequeno perigo" data-acao="excluirColaborador" data-chapa="${e.Chapa}">Excluir</button>
     </div></td>
-  </tr>`).join('') || '<tr><td colspan="9" class="vazio">Nenhum colaborador encontrado.</td></tr>';
+  </tr>`).join('') || '<tr><td colspan="10" class="vazio">Nenhum colaborador encontrado.</td></tr>';
 
   $('#contas-caixa').hidden = !contas.length;
   $('#contas-corpo').innerHTML = contas.map((c) => `<tr>
@@ -769,8 +794,34 @@ function renderHierarquia() {
 
 function seloAcesso(u) {
   if (!u) return '<span class="selo neutro">Sem acesso</span>';
-  const info = `<small>${esc(u.login)} · ${PERFIS[u.perfil] || esc(u.perfil)}${u.equipe ? ` · ${esc(u.equipe)}` : ''}</small>`;
+  const info = `<small>${esc(u.login)} · ${PERFIS[u.perfil] || esc(u.perfil)}</small>`;
   return `${u.ativo ? '<span class="selo sucesso">Com acesso</span>' : '<span class="selo erro">Bloqueado</span>'}${info}`;
+}
+
+function opcoesEquipe(atual) {
+  return '<option value="">Sem equipe</option>'
+    + equipes.map((x) => `<option value="${esc(x.id)}"${x.id === atual ? ' selected' : ''}>${esc(x.nome)}</option>`).join('');
+}
+
+/** Coloca a conta na equipe (ou tira, com destino vazio). Devolve true se gravou. */
+async function gravarEquipe(usuarioId, destino) {
+  const ok = destino
+    ? await noServidor('moverUsuario', { usuario_id: usuarioId, equipe_id: destino })
+    : await noServidor('removerUsuario', { usuario_id: usuarioId });
+  if (!ok) return false;
+  if (destino) vinculos[usuarioId] = destino; else delete vinculos[usuarioId];
+  guardarCopia();
+  return true;
+}
+
+async function trocarEquipe(sel) {
+  const antes = vinculos[sel.dataset.usuario] || '';
+  sel.disabled = true;
+  const ok = await gravarEquipe(sel.dataset.usuario, sel.value);
+  sel.disabled = false;
+  if (!ok) { sel.value = antes; return; }
+  toast(sel.value ? `Equipe alterada: ${sel.selectedOptions[0].textContent}.` : 'Pessoa sem equipe.', 'sucesso');
+  renderHierarquia();
 }
 
 const perfilDaFuncao = (f) => (/l[ií]der|encarregad|supervis|coordenad/i.test(f || '') ? 'lider' : 'carregador');
@@ -779,6 +830,7 @@ function mostrarAcesso() {
   const ligado = $('#f-acesso').checked;
   $('#bloco-acesso').hidden = !ligado;
   $('#f-login').required = ligado;
+  $('#f-equipe-caixa').hidden = $('#f-perfil').value === 'admin';
   // Senha obrigatória só quando a pessoa ainda não tem conta
   $('#f-senha').required = ligado && !colaboradores.find((x) => x.Chapa === editando)?.Usuario;
 }
@@ -856,6 +908,7 @@ function abrirColaborador(chapa) {
   $('#f-perfil').value = u?.perfil || 'carregador';
   $('#f-senha-rotulo').textContent = u ? 'Nova senha (opcional)' : 'Senha *';
   $('#f-senha-ajuda').textContent = u ? 'Deixe em branco para manter a senha atual.' : 'Mínimo 6 caracteres. Informe à pessoa.';
+  $('#f-equipe').innerHTML = opcoesEquipe(u && vinculos[u.id]);
   mostrarAcesso();
   $('#dlg-colaborador').showModal();
 }
@@ -878,6 +931,10 @@ async function salvarColaborador() {
   botao.textContent = 'Salvando…';
   const acesso = { ativo: $('#f-acesso').checked, login: $('#f-login').value, senha: $('#f-senha').value, perfil: $('#f-perfil').value };
   const salvo = await noServidor('expedicaoSalvarColaborador', { Chapa: chapa, novo, ...dados, acesso });
+  // A equipe só vale para quem tem acesso ativo e não é administrador
+  const u = salvo?.usuario;
+  const equipeDesejada = $('#f-equipe').value;
+  if (u?.ativo && u.perfil !== 'admin' && equipeDesejada !== (vinculos[u.id] || '')) await gravarEquipe(u.id, equipeDesejada);
   botao.disabled = false;
   botao.textContent = 'Salvar';
   if (!salvo) return;
@@ -1078,6 +1135,8 @@ $('#cfg-ordem').addEventListener('change', (ev) => { colOrdem = ev.target.value;
 $('#rel-busca').addEventListener('input', renderRelatorio);
 $('#form-conta').addEventListener('submit', (ev) => { ev.preventDefault(); salvarConta(); });
 $('#f-acesso').addEventListener('change', sugerirAcesso);
+$('#f-perfil').addEventListener('change', mostrarAcesso);
+$('#cfg-corpo').addEventListener('change', (ev) => { if (ev.target.matches('.sel-equipe')) trocarEquipe(ev.target); });
 
 // Filtros fixos no topo
 const aoMudar = {
@@ -1100,6 +1159,7 @@ const aoMudar = {
   '#f-fer-mes': (v) => { filtroFeriasMes = v === 'all' || v === 'prog' ? v : Number(v); renderFerias(); },
   '#f-cfg-setor': renderHierarquia,
   '#f-cfg-acesso': renderHierarquia,
+  '#f-cfg-equipe': renderHierarquia,
 };
 Object.entries(aoMudar).forEach(([id, fn]) => $(id).addEventListener('change', (ev) => fn(ev.target.value)));
 

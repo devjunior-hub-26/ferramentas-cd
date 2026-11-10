@@ -224,3 +224,5 @@ details.org-card summary { display: flex; align-items: center; justify-content: 
 }
 .rel-bloco .em-cartoes .tabela tr { border: 1px solid var(--borda); }
 .rel-bloco .em-cartoes .tabela td:first-child { display: none; }
+.sel-equipe { width: 100%; min-width: 110px; min-height: var(--toque-p); padding: 0 6px; font: inherit; font-size: .84rem; color: var(--texto); background: var(--branco); border: 1px solid #C9CFDB; border-radius: var(--raio-p); }
+.em-cartoes .sel-equipe { width: 58%; }
