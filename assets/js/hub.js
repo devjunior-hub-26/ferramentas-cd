@@ -57,11 +57,11 @@ $('#btn-sair').addEventListener('click', sair);
 
 function montarHub(perfil) {
   $('#hub-usuario').textContent = `${perfil.nome} · ${PERFIS[perfil.perfil] || perfil.perfil}`;
-  $('#hub-ola').textContent = `Olá, ${perfil.nome.split(' ')[0]}!`;
+  $('#hub-ola').textContent = `Olá, ${perfil.nome.split(' ')[0]}`;
 
   $('#lista-ferramentas').innerHTML = ferramentasDoPerfil(perfil.perfil).map((f) => {
     const corpo = `
-      <div class="ico">${icone(f.icone)}</div>
+      <div class="ico"${f.cor && !f.emBreve ? ` style="--c1:${esc(f.cor[0])};--c2:${esc(f.cor[1])}"` : ''}>${icone(f.icone)}</div>
       <div>
         <h2>${esc(f.nome)} ${f.emBreve ? '<span class="selo neutro">Em breve</span>' : ''}</h2>
         <p>${esc(f.descricao)}</p>

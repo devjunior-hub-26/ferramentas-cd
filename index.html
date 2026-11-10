@@ -3,39 +3,48 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#0A1F44">
+  <meta name="theme-color" content="#F2F3F7">
   <title>Ferramentas do CD</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="assets/icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
   <link rel="stylesheet" href="assets/css/global.css">
   <style>
-    .tela-login { min-height: 100vh; display: flex; flex-direction: column; }
-    .login-topo { background: var(--azul-marinho); color: var(--branco); padding: 48px 24px 36px; text-align: center; }
-    .login-topo .logo { width: 84px; height: 84px; border-radius: 22px; background: var(--branco); color: var(--azul-marinho); display: grid; place-items: center; margin: 0 auto 14px; }
-    .login-topo .logo svg { width: 52px; height: 52px; }
-    .login-topo h1 { margin: 0; font-size: 1.6rem; }
-    .login-topo p { margin: 6px 0 0; opacity: .85; }
-    .login-form { padding: 24px 16px; width: 100%; max-width: 440px; margin: 0 auto; }
-
-    .saudacao { margin: 4px 0 18px; }
-    .saudacao h1 { margin-bottom: 2px; }
-    .grade-ferramentas { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
-    .ferramenta {
-      display: flex; gap: 14px; align-items: flex-start; text-decoration: none; color: var(--texto);
-      border: 2px solid var(--borda); border-radius: 18px; padding: 18px; background: var(--branco);
-      box-shadow: var(--sombra); min-height: 110px; transition: border-color .15s, background .15s;
+    .tela-login {
+      min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 32px 16px;
+      background: radial-gradient(90% 55% at 12% 0%, #6E8BFF 0%, transparent 62%), radial-gradient(85% 60% at 100% 100%, #7A3DF0 0%, transparent 62%), linear-gradient(160deg, #2F49E8, #2430A8);
     }
-    a.ferramenta:hover, a.ferramenta:focus-visible { border-color: var(--azul-marinho); background: var(--azul-claro-2); outline: none; }
-    a.ferramenta:active { background: var(--azul-claro); }
-    .ferramenta .ico { flex: none; width: 58px; height: 58px; border-radius: 16px; background: var(--azul-marinho); color: var(--branco); display: grid; place-items: center; }
-    .ferramenta .ico svg { width: 32px; height: 32px; }
-    .ferramenta h2 { font-size: 1.1rem; margin: 2px 0 4px; }
-    .ferramenta p { margin: 0; color: var(--texto-suave); font-size: .95rem; }
-    .ferramenta.em-breve { opacity: .55; box-shadow: none; cursor: not-allowed; }
-    .ferramenta.em-breve .ico { background: var(--texto-suave); }
+    .login-topo { color: var(--branco); padding: 0 8px 24px; text-align: center; }
+    .login-topo .logo { width: 88px; height: 88px; border-radius: 26px; background: var(--branco); color: var(--cor); display: grid; place-items: center; margin: 0 auto 16px; box-shadow: 0 14px 34px rgba(14, 18, 70, .35); }
+    .login-topo .logo svg { width: 52px; height: 52px; }
+    .login-topo h1 { margin: 0; font-size: 2rem; }
+    .login-topo p { margin: 6px 0 0; opacity: .88; }
+    .login-form { padding: 24px; width: 100%; max-width: 420px; background: var(--branco); border-radius: 28px; box-shadow: 0 26px 64px rgba(14, 18, 70, .38); animation: sobe .55s var(--mola); }
+    .login-form p { margin-bottom: 0; }
 
-    #quadro-ferramenta { position: fixed; inset: 0; z-index: 1000; width: 100%; height: 100%; border: 0; background: var(--branco); }
+    .saudacao { margin: 6px 0 20px; }
+    .saudacao h1 { margin-bottom: 2px; }
+    .grade-ferramentas { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+    .ferramenta {
+      display: flex; gap: 14px; align-items: center; text-decoration: none; color: var(--texto); touch-action: manipulation;
+      border-radius: 22px; padding: 16px; background: var(--branco); box-shadow: var(--sombra); min-height: 100px;
+      transition: transform .4s var(--mola), box-shadow .25s;
+    }
+    a.ferramenta:hover { box-shadow: 0 2px 4px rgba(24, 26, 35, .06), 0 16px 36px rgba(24, 26, 35, .11); }
+    a.ferramenta:active { transform: scale(.975); transition-duration: .08s, .25s; }
+    .ferramenta .ico {
+      flex: none; width: 62px; height: 62px; border-radius: 18px; color: var(--branco); display: grid; place-items: center;
+      background: linear-gradient(160deg, var(--c1, #B4B9C7), var(--c2, #858C9E));
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), 0 5px 12px rgba(24, 26, 35, .16);
+    }
+    .ferramenta .ico svg { width: 32px; height: 32px; }
+    .ferramenta h2 { font-size: 1.08rem; margin: 0 0 3px; }
+    .ferramenta p { margin: 0; color: var(--texto-suave); font-size: .92rem; line-height: 1.35; }
+    .ferramenta.em-breve { background: transparent; box-shadow: inset 0 0 0 1px var(--borda); cursor: not-allowed; }
+    .ferramenta.em-breve h2, .ferramenta.em-breve p { color: var(--texto-suave); }
+    .ferramenta.em-breve .ico { box-shadow: none; }
+
+    #quadro-ferramenta { position: fixed; inset: 0; z-index: 1000; width: 100%; height: 100%; border: 0; background: var(--fundo); }
     body.com-ferramenta { overflow: hidden; }
     body.com-ferramenta > :not(#quadro-ferramenta):not(script) { display: none !important; }
   </style>

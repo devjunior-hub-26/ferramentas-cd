@@ -20,7 +20,7 @@ const MESES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'O
 const MESES_NOME = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 const SETORES = ['EXPEDIÇÃO', 'EXPEDIÇÃO ADEGA', 'EXPEDIÇÃO CAMINHÃO', 'CONFERENCIA'];
 const NO_L = 190, NO_A = 92, ESP_H = 18, ESP_V = 60, LINHA_GRUPO = 18;
-const COR_LINHA = '#CBD5E6';
+const COR_LINHA = '#D9DCE5';
 
 const STATUS = {
   presente: { rotulo: 'Presente', plural: 'Presentes', selo: 'sucesso' },
@@ -28,7 +28,7 @@ const STATUS = {
   atestado: { rotulo: 'Atestado', plural: 'Atestados', selo: 'alerta' },
   segundo_turno: { rotulo: '2º Turno', plural: '2º Turno', selo: '' },
   folga: { rotulo: 'Folga', plural: 'Folgas', selo: 'neutro' },
-  ferias: { rotulo: 'Férias', plural: 'Férias', selo: 'marinho' },
+  ferias: { rotulo: 'Férias', plural: 'Férias', selo: 'escuro' },
 };
 const ORDEM_STATUS = [null, ...Object.keys(STATUS)];
 const AUSENCIAS = ORDEM_STATUS.slice(2);
@@ -459,7 +459,7 @@ async function fotoOrg() {
   toast('Gerando imagem…');
   try {
     const area = $('#org-area');
-    const tela = await html2canvas(area, { scale: 2, backgroundColor: '#F3F6FC', useCORS: true, scrollX: 0, scrollY: 0, width: area.scrollWidth, height: area.scrollHeight });
+    const tela = await html2canvas(area, { scale: 2, backgroundColor: '#FFFFFF', useCORS: true, scrollX: 0, scrollY: 0, width: area.scrollWidth, height: area.scrollHeight });
     mostrarFoto(tela, `organograma_expedicao_${hojeArquivo()}.png`, 'Foto do organograma');
   } catch {
     toast('Erro ao gerar a imagem.', 'erro');
@@ -720,7 +720,7 @@ function renderHierarquia() {
     <td>${esc(e.Setor)}</td>
     <td><span class="selo">${esc(e.NIVEL || '—')}</span></td>
     <td>${e.Admissao ? dataBR(e.Admissao) : '<span class="selo alerta">Não informada</span>'}</td>
-    <td>${e.FeriasMes !== null ? `<span class="selo marinho">${MESES_NOME[e.FeriasMes]}</span>` : '—'}</td>
+    <td>${e.FeriasMes !== null ? `<span class="selo escuro">${MESES_NOME[e.FeriasMes]}</span>` : '—'}</td>
     <td><div class="acoes">
       <button class="btn pequeno secundario" data-acao="editarColaborador" data-chapa="${e.Chapa}">Editar</button>
       <button class="btn pequeno perigo" data-acao="excluirColaborador" data-chapa="${e.Chapa}">Excluir</button>
@@ -854,7 +854,7 @@ function renderRelatorio() {
   $('#rel-geral').textContent = `Total geral: ${total} · ${grupos.length} setor(es)`;
   $('#rel-corpo').innerHTML = grupos.map((g) => `<div class="rel-bloco">
     <div class="rel-cabeca">
-      <div class="linha"><strong>${esc(g.setor)}</strong><span class="selo marinho">Total: ${g.pessoas.length}</span></div>
+      <div class="linha"><strong>${esc(g.setor)}</strong><span class="selo escuro">Total: ${g.pessoas.length}</span></div>
       <div class="rel-funcoes">${contagemFuncoes(g.pessoas).map(([f, n]) => `<span class="selo vazio">${esc(f)} · ${n}</span>`).join('')}</div>
     </div>
     <div class="tabela-wrap"><table class="tabela"><thead>${CABECA_RELATORIO}</thead><tbody>${g.pessoas.map(linhaRelatorio).join('')}</tbody></table></div>
