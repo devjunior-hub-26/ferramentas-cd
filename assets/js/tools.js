@@ -27,7 +27,7 @@ export const FERRAMENTAS = [
     nome: 'Painel de Produtividade',
     descricao: 'Lançamentos, cruzamento com a 967, divergências e relatório em Excel.',
     icone: 'grafico',
-    cor: ['#4E8BFF', '#2F49E8'],
+    cor: ['#3D67C4', '#102A63'],
     link: 'tools/carregamento/painel.html',
     perfis: ['admin', 'lider'],
   },

@@ -411,6 +411,20 @@ function cartaoPessoa(e, x, y) {
   </div>`;
 }
 
+// Versão para celular: lista em níveis, sem rolagem lateral.
+function ramoOrg(no) {
+  const grupo = !no.filhos.length && no.pessoas.length > 1;
+  const f0 = funcao(no.pessoas[0]);
+  const cartoes = grupo
+    ? `<details class="org-card ${classeNo(f0)}">
+        <summary><span><b>${esc(f0)}</b><small>Nível ${esc(no.nivel)}</small></span><span class="selo">${no.pessoas.length}</span></summary>
+        <ul class="org-membros">${no.pessoas.map((e) => `<li>${esc(e.Nome)}</li>`).join('')}</ul>
+      </details>`
+    : no.pessoas.map((e) => `<div class="org-card ${classeNo(funcao(e))}"><b>${esc(e.Nome)}</b><small>${esc(funcao(e))} · ${esc(e.Setor)}</small></div>`).join('');
+  const filhos = no.filhos.length ? `<div class="org-filhos">${no.filhos.map(ramoOrg).join('')}</div>` : '';
+  return `<div class="org-ramo">${cartoes}${filhos}</div>`;
+}
+
 function renderOrg() {
   const kpis = [['Total', colaboradores.length], ['Exp. Adega', 'EXPEDIÇÃO ADEGA'], ['Exp. Caminhão', 'EXPEDIÇÃO CAMINHÃO'], ['Conferência', 'CONFERENCIA'], ['Expedição', 'EXPEDIÇÃO']];
   $('#org-kpis').innerHTML = kpis.map(([r, s]) => kpi(r, typeof s === 'number' ? s : colaboradores.filter((e) => e.Setor === s).length)).join('');
@@ -422,9 +436,12 @@ function renderOrg() {
     nos.innerHTML = '<p class="carregando">Nenhum colaborador neste filtro.</p>';
     svg.innerHTML = '';
     area.style.cssText = 'width:100%;height:420px;';
+    $('#org-lista').innerHTML = '<p class="carregando">Nenhum colaborador neste filtro.</p>';
     return;
   }
-  const pos = posicionar(montarArvore(lista));
+  const raizes = montarArvore(lista);
+  $('#org-lista').innerHTML = raizes.map(ramoOrg).join('');
+  const pos = posicionar(raizes);
   let maxX = 0, maxY = 0, linhas = '', html = '';
   pos.forEach(({ x, y, a, no }) => {
     const grupo = !no.filhos.length && no.pessoas.length > 1;
@@ -669,7 +686,7 @@ function renderFerias() {
     const limite = mesLimite(e.Admissao);
     const meses = MESES_NOME.map((nome, m) => {
       const prog = e.FeriasMes === m, lim = limite === m;
-      return `<button class="mes ${prog ? 'prog' : ''} ${lim ? 'limite' : ''}" data-acao="feriasMes" data-chapa="${e.Chapa}" data-valor="${m}" title="${nome}${lim ? ' (mês limite)' : ''}" aria-label="${nome}${prog ? ', programado' : ''}${lim ? ', mês limite' : ''}">${prog ? 'F' : lim ? '!' : ''}</button>`;
+      return `<button class="mes ${prog ? 'prog' : ''} ${lim ? 'limite' : ''}" data-acao="feriasMes" data-chapa="${e.Chapa}" data-valor="${m}" title="${nome}${lim ? ' (mês limite)' : ''}" aria-label="${nome}${prog ? ', programado' : ''}${lim ? ', mês limite' : ''}" data-mes="${MESES[m]}"><span class="marca">${prog ? 'F' : lim ? '!' : ''}</span></button>`;
     }).join('');
     return `<div class="fer-linha"><div class="fer-nome"><b title="${esc(e.Nome)}">${esc(primeiros(e.Nome, 2))}</b><small>${esc(funcao(e))}</small>${seloVencimento(e.Admissao)}</div>${meses}</div>`;
   }).join('');
@@ -857,7 +874,7 @@ function renderRelatorio() {
       <div class="linha"><strong>${esc(g.setor)}</strong><span class="selo escuro">Total: ${g.pessoas.length}</span></div>
       <div class="rel-funcoes">${contagemFuncoes(g.pessoas).map(([f, n]) => `<span class="selo vazio">${esc(f)} · ${n}</span>`).join('')}</div>
     </div>
-    <div class="tabela-wrap"><table class="tabela"><thead>${CABECA_RELATORIO}</thead><tbody>${g.pessoas.map(linhaRelatorio).join('')}</tbody></table></div>
+    <div class="tabela-wrap"><table class="tabela titulo-3"><thead>${CABECA_RELATORIO}</thead><tbody>${g.pessoas.map(linhaRelatorio).join('')}</tbody></table></div>
   </div>`).join('') || '<p class="carregando">Nenhum funcionário encontrado com os filtros atuais.</p>';
 }
 
@@ -981,6 +998,7 @@ $('#arquivo').addEventListener('change', async (ev) => {
 });
 $('#form-colaborador').addEventListener('submit', (ev) => { ev.preventDefault(); salvarColaborador(); });
 $('#cfg-busca').addEventListener('input', renderHierarquia);
+$('#cfg-ordem').addEventListener('change', (ev) => { colOrdem = ev.target.value; ordemAsc = true; renderHierarquia(); });
 $('#rel-busca').addEventListener('input', renderRelatorio);
 ['#hist-de', '#hist-ate'].forEach((id) => $(id).addEventListener('change', () => {
   $$('[data-acao="periodo"]').forEach((b) => b.classList.remove('ativo'));

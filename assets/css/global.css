@@ -1,12 +1,12 @@
 /* =========================================================
-   Hub de Ferramentas do CD — identidade "Cobalto"
+   Hub de Ferramentas do CD — identidade azul-marinho
    Para mudar as cores do app inteiro, altere só o :root.
    ========================================================= */
 :root {
-  --cor: #2F49E8;               /* ações: botões, links, seleção */
-  --cor-forte: #2238C4;         /* hover / pressionado */
-  --cor-clara: #E8ECFF;         /* botão secundário, destaque */
-  --cor-clara-2: #F5F6FD;       /* passar o mouse, linhas de apoio */
+  --cor: #102A63;               /* ações: botões, links, seleção */
+  --cor-forte: #0A1D47;         /* hover / pressionado */
+  --cor-clara: #E5EAF5;         /* botão secundário, destaque */
+  --cor-clara-2: #F4F6FB;       /* passar o mouse, linhas de apoio */
   --branco: #FFFFFF;
   --fundo: #F2F3F7;             /* fundo das telas */
 
@@ -99,7 +99,7 @@ a { color: var(--cor); }
 .btn:disabled { opacity: .45; cursor: not-allowed; }
 .btn svg { width: 21px; height: 21px; flex: none; }
 .btn.secundario { background: var(--cor-clara); color: var(--cor); }
-.btn.secundario:hover { background: #DCE2FF; }
+.btn.secundario:hover { background: #D8DFEF; }
 .btn.perigo { background: var(--erro); }
 .btn.perigo:hover { background: #B32015; }
 .btn.sucesso { background: var(--sucesso); }
@@ -256,6 +256,51 @@ dialog.modal[open]::backdrop { opacity: 1; }
 @media (min-width: 900px) {
   body { font-size: 16px; }
   .conteudo { padding: 24px; }
+}
+
+
+/* ---------- Celular: nada rola para o lado ---------- */
+@media (max-width: 760px) {
+  /* Abas em grade: todas ficam visíveis */
+  .abas { display: grid; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); overflow: visible; }
+  .abas button { padding: 0 6px; min-height: 44px; font-size: .9rem; }
+  .abas .btn { margin-left: 0; min-height: 44px; }
+
+  /* Tabelas viram cartões. Os rótulos vêm do cabeçalho (assets/js/pwa.js) */
+  .tabela-wrap { overflow: visible; background: transparent; border-radius: 0; box-shadow: none; }
+  table.tabela, .tabela tbody { display: block; }
+  .tabela thead { display: none; }
+  .tabela tr {
+    display: flex; flex-direction: column; margin-bottom: 10px; padding: 12px 16px;
+    background: var(--branco); border-radius: 18px; box-shadow: var(--sombra-p);
+  }
+  .tabela tbody tr:hover { background: var(--branco); }
+  .tabela td, .tabela td.num {
+    display: block; padding: 5px 0; border: 0; text-align: right; white-space: normal; overflow-wrap: anywhere;
+  }
+  .tabela td:empty { display: none; }
+  .tabela td::before { content: attr(data-label); float: left; max-width: 48%; padding-right: 12px; text-align: left; font-size: .86rem; color: var(--texto-suave); }
+  .tabela td[data-label=""]::before, .tabela td.vazio::before, .tabela td.carregando::before { display: none; }
+  .tabela td.vazio, .tabela td.carregando { text-align: center; }
+
+  /* Título do cartão: 1ª coluna, ou a indicada na tabela */
+  .tabela:not(.titulo-2):not(.titulo-3) td:first-child,
+  .tabela.titulo-2 td:nth-child(2),
+  .tabela.titulo-3 td:nth-child(3) {
+    order: -1; padding: 0 0 8px; margin-bottom: 4px; border-bottom: 1px solid #ECEEF3;
+    text-align: left; font-size: 1.04rem; font-weight: 650; letter-spacing: -.008em;
+  }
+  .tabela:not(.titulo-2):not(.titulo-3) td:first-child::before,
+  .tabela.titulo-2 td:nth-child(2)::before,
+  .tabela.titulo-3 td:nth-child(3)::before { display: none; }
+  .tabela:not(.titulo-2):not(.titulo-3) td.vazio:first-child,
+  .tabela:not(.titulo-2):not(.titulo-3) td.carregando:first-child { margin: 0; padding: 12px 0; border: 0; text-align: center; font-weight: 400; }
+
+  /* Ações sempre à vista, em largura total */
+  .tabela td:has(.btn) { padding-top: 10px; text-align: left; }
+  .tabela td:has(.btn)::before { display: none; }
+  .tabela td .btn { flex: 1; width: 100%; }
+  .tabela td .btns, .tabela td .acoes { display: flex; flex-wrap: nowrap; gap: 8px; }
 }
 
 /* ---------- Preferências de acessibilidade ---------- */

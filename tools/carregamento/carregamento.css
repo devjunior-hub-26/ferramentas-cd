@@ -1,6 +1,6 @@
 /* Estilos específicos da ferramenta de carregamento */
 .faixa-equipe {
-  background: linear-gradient(120deg, #2F49E8, #6A3DE8); color: var(--branco); border-radius: var(--raio); box-shadow: var(--sombra);
+  background: linear-gradient(120deg, #102A63, #2C4C94); color: var(--branco); border-radius: var(--raio); box-shadow: var(--sombra);
   padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px;
   margin-bottom: 12px;
 }

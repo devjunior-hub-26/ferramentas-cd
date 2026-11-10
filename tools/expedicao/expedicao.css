@@ -1,8 +1,8 @@
 /* Quadro da Expedição — só o que o CSS global do hub não tem. */
 :root {
   --org-sup: var(--texto);
-  --org-sub: var(--cor);
-  --org-lider: #7C93F5;
+  --org-sub: #3D67C4;
+  --org-lider: #8FA8E0;
   --org-conf: var(--alerta-forte);
   --org-aux: #22B45E;
 }
@@ -81,9 +81,9 @@ mark { background: var(--alerta-fundo); color: inherit; border-radius: 4px; }
 .st-presente { --st: var(--sucesso); }
 .st-falta { --st: var(--erro); }
 .st-atestado { --st: var(--alerta-forte); }
-.st-segundo_turno { --st: var(--cor); }
+.st-segundo_turno { --st: #3D67C4; }
 .st-folga { --st: #8A91A3; }
-.st-ferias { --st: var(--texto); }
+.st-ferias { --st: var(--cor); }
 
 /* ---------- Exportar ---------- */
 .ausente { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 12px 0; border-bottom: 1px solid #ECEEF3; }
@@ -172,4 +172,50 @@ details.cartao summary { cursor: pointer; min-height: 28px; }
   }
   body.printing #print-rel tr { break-inside: avoid; }
   body.printing #print-rel thead { display: table-header-group; }
+}
+
+/* ---------- Celular: nada rola para o lado ---------- */
+.so-celular, #org-lista { display: none; }
+.org-card { position: relative; background: var(--branco); border-radius: 16px; box-shadow: var(--sombra-p); padding: 11px 14px 11px 22px; }
+.org-card::before { content: ""; position: absolute; left: 8px; top: 12px; bottom: 12px; width: 5px; border-radius: 3px; background: var(--cor-no); }
+.org-card.sup { --cor-no: var(--org-sup); }
+.org-card.sub { --cor-no: var(--org-sub); }
+.org-card.lider { --cor-no: var(--org-lider); }
+.org-card.conf { --cor-no: var(--org-conf); }
+.org-card.aux { --cor-no: var(--org-aux); }
+.org-card b, .org-card small { display: block; }
+.org-card b { font-weight: 650; font-size: .96rem; }
+.org-card small { font-size: .78rem; color: var(--texto-suave); }
+details.org-card summary { display: flex; align-items: center; justify-content: space-between; gap: 10px; cursor: pointer; min-height: 40px; }
+.org-membros { margin: 8px 0 2px; padding: 8px 0 0; border-top: 1px solid #ECEEF3; list-style: none; font-size: .9rem; }
+.org-membros li { padding: 5px 0; }
+.org-ramo { display: flex; flex-direction: column; gap: 8px; }
+.org-filhos { display: flex; flex-direction: column; gap: 8px; margin-left: 8px; padding-left: 10px; border-left: 2px solid var(--borda); }
+
+@media (max-width: 760px) {
+  .so-celular { display: flex; }
+  #org-lista { display: flex; flex-direction: column; gap: 8px; }
+  /* A árvore larga fica fora da tela: só serve para gerar a foto */
+  .org-caixa { position: fixed; top: -99999px; left: 0; overflow: visible; }
+
+  .ferias-caixa { overflow: visible; background: transparent; border-radius: 0; box-shadow: none; }
+  .fer-linha.cabeca { display: none; }
+  .fer-linha {
+    grid-template-columns: repeat(6, 1fr); gap: 6px; min-width: 0; margin-bottom: 10px; padding: 12px;
+    background: var(--branco); border: 0; border-radius: 18px; box-shadow: var(--sombra-p);
+  }
+  .fer-linha:last-child { border: 0; }
+  .fer-nome { grid-column: 1 / -1; padding: 0 2px 6px; border: 0; }
+  .mes, .mes:last-child { min-height: 44px; border: 0; border-radius: 10px; background: var(--fundo); }
+  .mes::before { content: attr(data-mes); font-size: .8rem; font-weight: 600; color: var(--texto-suave); }
+  .mes .marca { display: none; }
+  .mes.limite { background: var(--erro-fundo); }
+  .mes.limite::before { color: var(--erro); }
+  .mes.prog { background: var(--cor); }
+  .mes.prog::before { color: var(--branco); }
+
+  .rel-bloco { box-shadow: none; overflow: visible; }
+  .rel-cabeca { border-radius: 14px; margin-bottom: 8px; }
+  .rel-bloco .tabela tr { box-shadow: 0 0 0 1px var(--borda); }
+  .rel-bloco .tabela td:first-child { display: none; }
 }

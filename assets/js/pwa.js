@@ -10,6 +10,19 @@ api('versao')
   .then((r) => { rodape.textContent = `App ${self.VERSAO_APP} · Servidor ${r.versao}`; })
   .catch((e) => { if (e.codigo === 'ACAO_INVALIDA') rodape.textContent += ' · Servidor desatualizado'; });
 
+// No celular cada linha de tabela vira um cartão: cada célula recebe o nome da
+// sua coluna, que o CSS mostra como rótulo.
+function rotularTabelas() {
+  document.querySelectorAll('table.tabela').forEach((t) => {
+    const colunas = [...t.querySelectorAll('thead th')].map((th) => th.textContent.trim());
+    t.querySelectorAll('tbody td').forEach((td) => {
+      if (td.colSpan === 1 && td.dataset.label === undefined) td.dataset.label = colunas[td.cellIndex] || '';
+    });
+  });
+}
+new MutationObserver(rotularTabelas).observe(document.body, { childList: true, subtree: true });
+rotularTabelas();
+
 // Registra o service worker (app instalável e funcionando com sinal fraco).
 if ('serviceWorker' in navigator) {
   const url = new URL('../../sw.js', import.meta.url);

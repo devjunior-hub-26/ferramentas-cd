@@ -25,6 +25,6 @@ Deixar o hub e as ferramentas bem mais bonitos, com cor nova. O gestor deu liber
 2. **Reescrever com um framework (descartada):** arriscaria o modo offline e o leitor de QR sem deixar o resultado mais bonito.
 
 ## Decisões do construtor
-- Cobalto `#2F49E8`, com tokens semânticos no `:root` de `assets/css/global.css`.
+- Azul-marinho `#102A63` (revisado a pedido do gestor; a primeira versão era cobalto `#2F49E8`), com tokens semânticos no `:root` de `assets/css/global.css`.
 - Fonte do próprio sistema, com espaçamento entre letras ajustado por tamanho.
 - Movimento só com CSS, curva sem overshoot, usando `@starting-style` nas janelas.

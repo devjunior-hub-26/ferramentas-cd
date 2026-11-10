@@ -67,6 +67,7 @@
         <button class="btn pequeno secundario" data-acao="fotoOrg" data-icone="download">Foto do organograma</button>
         <button class="btn pequeno secundario" data-acao="abrirRelatorio" data-icone="prancheta">Relatório de funcionários</button>
       </div>
+      <div id="org-lista"></div>
       <div class="org-caixa"><div id="org-area"><svg id="org-svg" aria-hidden="true"></svg><div id="org-nos"></div></div></div>
     </section>
 
@@ -176,7 +177,13 @@
         <button class="btn pequeno sucesso" data-acao="novoColaborador">Novo colaborador</button>
       </div>
       <div class="campo"><label for="cfg-busca">Buscar colaborador</label><input id="cfg-busca" type="search" placeholder="Nome, chapa, função ou setor"></div>
-      <div class="tabela-wrap"><table class="tabela">
+      <div class="campo so-celular"><label for="cfg-ordem">Ordenar por</label>
+        <select id="cfg-ordem">
+          <option value="NIVEL">Nível</option><option value="Nome">Nome</option><option value="Chapa">Chapa</option>
+          <option value="funcao">Função</option><option value="Setor">Setor</option><option value="Admissao">Admissão</option>
+        </select>
+      </div>
+      <div class="tabela-wrap"><table class="tabela titulo-2">
         <thead><tr id="cfg-cabeca">
           <th class="ordena" data-acao="ordenar" data-valor="Chapa">Chapa</th>
           <th class="ordena" data-acao="ordenar" data-valor="Nome">Nome</th>
