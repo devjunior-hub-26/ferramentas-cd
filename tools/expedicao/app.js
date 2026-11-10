@@ -766,8 +766,10 @@ async function salvarColaborador() {
   if (novo && colaboradores.some((e) => e.Chapa === chapa)) { toast('Chapa já cadastrada.', 'erro'); return; }
   const botao = $('#form-colaborador [type=submit]');
   botao.disabled = true;
+  botao.textContent = 'Salvando…';
   const salvo = await noServidor('expedicaoSalvarColaborador', { Chapa: chapa, novo, ...dados });
   botao.disabled = false;
+  botao.textContent = 'Salvar';
   if (!salvo) return;
   delete pendentes.ferias[chapa];
   if (novo) {
@@ -786,9 +788,19 @@ async function salvarColaborador() {
 async function excluirColaborador(chapa) {
   const e = colaboradores.find((x) => x.Chapa === chapa);
   if (!e || !(await confirmar(`Remover ${e.Nome} (${funcao(e)})?`, 'Excluir', true))) return;
-  if (!(await noServidor('expedicaoExcluirColaborador', { chapa }))) return;
+  // Some da tela na hora: o servidor leva alguns segundos para responder.
+  const posicao = colaboradores.indexOf(e);
+  const statusAntes = chamada[chapa];
   colaboradores = colaboradores.filter((x) => x.Chapa !== chapa);
   delete chamada[chapa];
+  atualizarTela();
+  toast(`Excluindo ${primeiros(e.Nome, 2)}…`);
+  if (!(await noServidor('expedicaoExcluirColaborador', { chapa }))) {
+    colaboradores.splice(posicao, 0, e);
+    chamada[chapa] = statusAntes;
+    atualizarTela();
+    return;
+  }
   delete pendentes.chamada[chapa];
   delete pendentes.ferias[chapa];
   guardarCopia();

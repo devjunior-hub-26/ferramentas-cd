@@ -8,7 +8,8 @@ Copie `tools/_modelo/` para `tools/<nome>/` (ex.: `tools/inventario/`). O `index
 
 - verifica o login (`exigirLogin([...perfis])`) e devolve ao hub quem não tem permissão;
 - usa o CSS global (botões grandes, azul-marinho e branco);
-- registra o service worker (funciona instalado no celular).
+- registra o service worker (funciona instalado no celular);
+- carrega `assets/js/guarda.js`: a ferramenta abre dentro do hub, com o endereço limpo, e quem cola o endereço direto precisa fazer login.
 
 Escreva a lógica da ferramenta no `<script type="module">` ou em um arquivo `.js` dentro da pasta.
 

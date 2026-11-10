@@ -34,6 +34,10 @@
     .ferramenta p { margin: 0; color: var(--texto-suave); font-size: .95rem; }
     .ferramenta.em-breve { opacity: .55; box-shadow: none; cursor: not-allowed; }
     .ferramenta.em-breve .ico { background: var(--texto-suave); }
+
+    #quadro-ferramenta { position: fixed; inset: 0; z-index: 1000; width: 100%; height: 100%; border: 0; background: var(--branco); }
+    body.com-ferramenta { overflow: hidden; }
+    body.com-ferramenta > :not(#quadro-ferramenta):not(script) { display: none !important; }
   </style>
 </head>
 <body>

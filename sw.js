@@ -23,6 +23,7 @@ const ARQUIVOS = [
   './assets/js/hub.js',
   './assets/js/pwa.js',
   './assets/js/versao.js',
+  './assets/js/guarda.js',
   './assets/icons/icon.svg',
   './assets/icons/icon-192.png',
   './tools/carregamento/',
