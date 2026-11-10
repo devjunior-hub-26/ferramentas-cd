@@ -3,50 +3,76 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#F2F3F7">
+  <meta name="theme-color" content="#102A63">
   <title>Ferramentas do CD</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="assets/icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
   <link rel="stylesheet" href="assets/css/global.css">
   <style>
-    .tela-login {
-      min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 32px 16px;
-      background: radial-gradient(90% 55% at 12% 0%, #2F5AAE 0%, transparent 62%), radial-gradient(85% 60% at 100% 100%, #1D3F85 0%, transparent 62%), linear-gradient(160deg, #102A63, #081634);
-    }
-    .login-topo { color: var(--branco); padding: 0 8px 24px; text-align: center; }
-    .login-topo .logo { width: 88px; height: 88px; border-radius: 26px; background: var(--branco); color: var(--cor); display: grid; place-items: center; margin: 0 auto 16px; box-shadow: 0 14px 34px rgba(14, 18, 70, .35); }
-    .login-topo .logo svg { width: 52px; height: 52px; }
-    .login-topo h1 { margin: 0; font-size: 2rem; }
-    .login-topo p { margin: 6px 0 0; opacity: .88; }
-    .login-form { padding: 24px; width: 100%; max-width: 420px; background: var(--branco); border-radius: 28px; box-shadow: 0 26px 64px rgba(14, 18, 70, .38); animation: sobe .55s var(--mola); }
+    /* ---------- Login ---------- */
+    .tela-login { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 32px 16px; background: linear-gradient(160deg, #102A63, #081634); }
+    .login-topo { color: var(--branco); padding: 0 8px 20px; text-align: center; }
+    .login-topo .logo { width: 68px; height: 68px; border-radius: 14px; background: var(--branco); color: var(--cor); display: grid; place-items: center; margin: 0 auto 14px; }
+    .login-topo .logo svg { width: 40px; height: 40px; }
+    .login-topo h1 { margin: 0; color: var(--branco); }
+    .login-topo p { margin: 4px 0 0; opacity: .85; }
+    .login-form { padding: 22px; width: 100%; max-width: 400px; background: var(--branco); border-radius: 12px; box-shadow: 0 20px 50px rgba(4, 10, 30, .4); }
     .login-form p { margin-bottom: 0; }
 
-    .saudacao { margin: 6px 0 20px; }
-    .saudacao h1 { margin-bottom: 2px; }
-    .grade-ferramentas { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
-    .ferramenta {
-      display: flex; gap: 14px; align-items: center; text-decoration: none; color: var(--texto); touch-action: manipulation;
-      border-radius: 22px; padding: 16px; background: var(--branco); box-shadow: var(--sombra); min-height: 100px;
-      transition: transform .4s var(--mola), box-shadow .25s;
-    }
-    a.ferramenta:hover { box-shadow: 0 2px 4px rgba(24, 26, 35, .06), 0 16px 36px rgba(24, 26, 35, .11); }
-    a.ferramenta:active { transform: scale(.975); transition-duration: .08s, .25s; }
-    .ferramenta .ico {
-      flex: none; width: 62px; height: 62px; border-radius: 18px; color: var(--branco); display: grid; place-items: center;
-      background: linear-gradient(160deg, var(--c1, #B4B9C7), var(--c2, #858C9E));
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), 0 5px 12px rgba(24, 26, 35, .16);
-    }
-    .ferramenta .ico svg { width: 32px; height: 32px; }
-    .ferramenta h2 { font-size: 1.08rem; margin: 0 0 3px; }
-    .ferramenta p { margin: 0; color: var(--texto-suave); font-size: .92rem; line-height: 1.35; }
-    .ferramenta.em-breve { background: transparent; box-shadow: inset 0 0 0 1px var(--borda); cursor: not-allowed; }
-    .ferramenta.em-breve h2, .ferramenta.em-breve p { color: var(--texto-suave); }
-    .ferramenta.em-breve .ico { box-shadow: none; }
+    /* ---------- Sistema ---------- */
+    .app { position: fixed; inset: 0; display: flex; }
+    .menu { flex: none; width: 256px; display: flex; flex-direction: column; background: #0D2352; color: #DCE3F2; transition: width .2s ease, transform .22s ease; z-index: 40; }
+    .menu-marca { display: flex; align-items: center; gap: 10px; min-height: 56px; padding: 0 14px; border-bottom: 1px solid rgba(255, 255, 255, .1); white-space: nowrap; overflow: hidden; }
+    .menu-marca .logo-p { flex: none; width: 32px; height: 32px; border-radius: 7px; background: var(--branco); color: var(--cor); display: grid; place-items: center; }
+    .menu-marca .logo-p svg { width: 20px; height: 20px; }
+    .menu-marca strong { color: var(--branco); font-size: .98rem; font-weight: 650; }
+    .menu-itens { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 6px 8px 12px; }
+    .menu-grupo { margin: 14px 8px 4px; font-size: .68rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #8FA0C4; white-space: nowrap; }
+    .menu-item { display: flex; align-items: center; gap: 11px; width: 100%; min-height: var(--toque); padding: 0 10px; border: 0; border-radius: 7px; background: transparent; color: inherit; font: inherit; font-size: .9rem; text-align: left; cursor: pointer; white-space: nowrap; overflow: hidden; }
+    .menu-item svg { flex: none; width: 19px; height: 19px; }
+    .menu-item:hover { background: rgba(255, 255, 255, .08); }
+    .menu-item.ativo { background: var(--branco); color: var(--cor); font-weight: 600; }
+    .menu-item.em-breve { opacity: .45; cursor: not-allowed; background: transparent; }
+    .menu-usuario { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-top: 1px solid rgba(255, 255, 255, .1); }
+    .menu-usuario .dados { flex: 1; min-width: 0; }
+    .menu-usuario strong, .menu-usuario small { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .menu-usuario strong { color: var(--branco); font-size: .86rem; font-weight: 600; }
+    .menu-usuario small { font-size: .74rem; color: #A9B6D2; }
+    .btn-icone { flex: none; width: var(--toque); height: var(--toque); display: grid; place-items: center; border: 0; border-radius: 7px; background: transparent; color: inherit; cursor: pointer; }
+    .btn-icone:hover { background: rgba(127, 140, 170, .18); }
+    .btn-icone svg { width: 21px; height: 21px; }
 
-    #quadro-ferramenta { position: fixed; inset: 0; z-index: 1000; width: 100%; height: 100%; border: 0; background: var(--fundo); }
-    body.com-ferramenta { overflow: hidden; }
-    body.com-ferramenta > :not(#quadro-ferramenta):not(script) { display: none !important; }
+    .principal { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+    .barra { flex: none; display: flex; align-items: center; gap: 8px; min-height: 56px; padding: 0 12px 0 8px; padding-top: env(safe-area-inset-top); background: var(--branco); border-bottom: 1px solid var(--borda); }
+    .barra-titulo { flex: 1; min-width: 0; }
+    .barra-titulo small, .barra-titulo strong { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .barra-titulo small { font-size: .72rem; color: var(--texto-suave); }
+    .barra-titulo strong { font-size: 1.04rem; font-weight: 650; line-height: 1.2; }
+    .sync-barra { flex: none; display: flex; align-items: center; gap: 6px; font-size: .78rem; font-weight: 600; color: var(--texto-suave); }
+    .sync-barra::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #22B45E; }
+    .sync-barra.off::before { background: var(--erro); }
+    .sync-pend { background: var(--alerta-forte); color: var(--texto); border-radius: 5px; padding: 0 6px; font-weight: 700; }
+    .area { flex: 1; min-height: 0; position: relative; background: var(--fundo); }
+    #quadro-ferramenta { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: var(--fundo); }
+    .menu-fundo { display: none; }
+
+    /* Recolhido no computador: só ícones */
+    @media (min-width: 901px) {
+      .app.recolhido .menu { width: 60px; }
+      .app.recolhido .menu-marca strong, .app.recolhido .menu-item span, .app.recolhido .menu-usuario .dados { display: none; }
+      .app.recolhido .menu-grupo { visibility: hidden; height: 1px; margin: 6px 0; }
+      .app.recolhido .menu-item { justify-content: center; padding: 0; }
+      .app.recolhido .menu-usuario { justify-content: center; padding: 10px 0; }
+      .app.recolhido .menu-marca { justify-content: center; padding: 0; }
+    }
+    /* Celular e tablet: menu por cima da tela */
+    @media (max-width: 900px) {
+      .menu { position: fixed; top: 0; bottom: 0; left: 0; width: min(290px, 84vw); transform: translateX(-100%); }
+      .app.aberto .menu { transform: none; box-shadow: 0 0 40px rgba(4, 10, 30, .4); }
+      .app.aberto .menu-fundo { display: block; position: fixed; inset: 0; z-index: 30; background: rgba(16, 24, 40, .45); }
+    }
+    body.no-app > .versao-app, body.no-app > #faixa-teste { display: none; }
   </style>
 </head>
 <body>
@@ -68,26 +94,29 @@
         <input id="senha" name="senha" type="password" autocomplete="current-password" required>
       </div>
       <button class="btn bloco" type="submit" id="btn-entrar">Entrar</button>
-      <p class="suave centro mt">Não tem acesso? Peça ao administrador.</p>    </form>
+      <p class="suave centro mt">Não tem acesso? Peça ao administrador.</p>
+    </form>
   </section>
 
-  <!-- HUB -->
-  <section id="tela-hub" hidden>
-    <header class="topo">
-      <div class="titulo">
-        <strong>Ferramentas do CD</strong>
-        <small id="hub-usuario"></small>
+  <!-- SISTEMA -->
+  <section id="tela-app" class="app" hidden>
+    <aside class="menu" aria-label="Menu principal">
+      <div class="menu-marca"><span class="logo-p" id="logo-menu"></span><strong>Ferramentas do CD</strong></div>
+      <nav class="menu-itens" id="menu-itens"></nav>
+      <div class="menu-usuario">
+        <div class="dados"><strong id="app-nome"></strong><small id="app-perfil"></small></div>
+        <button class="btn-icone" id="btn-sair" title="Sair" aria-label="Sair"></button>
       </div>
-      <button class="icone-btn" id="btn-sair" title="Sair" aria-label="Sair"></button>
-    </header>
-    <main class="conteudo">
-      <div class="saudacao">
-        <h1 id="hub-ola">Olá!</h1>
-        <p class="suave" style="margin:0">Escolha uma ferramenta</p>
-      </div>
-      <div id="offline-hub" class="aviso alerta" hidden>Sem conexão. As ferramentas que funcionam offline continuam disponíveis.</div>
-      <div id="lista-ferramentas" class="grade-ferramentas"></div>
-    </main>
+    </aside>
+    <div class="menu-fundo" id="menu-fundo"></div>
+    <div class="principal">
+      <header class="barra">
+        <button class="btn-icone" id="btn-menu" title="Menu" aria-label="Abrir ou recolher o menu"></button>
+        <div class="barra-titulo"><small id="t-grupo"></small><strong id="t-tela"></strong></div>
+        <div class="sync-barra" id="sync-barra" aria-live="polite" hidden><span id="sync-texto"></span><span class="sync-pend" id="sync-pend" hidden></span></div>
+      </header>
+      <div class="area" id="area"></div>
+    </div>
   </section>
 
   <!-- CONFIGURAÇÃO PENDENTE -->

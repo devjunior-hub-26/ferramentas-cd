@@ -30,25 +30,11 @@
   </header>
 
   <nav class="abas" id="abas" role="tablist">
-    <button data-aba="usuarios" role="tab">Usuários</button>
     <button data-aba="equipes" role="tab">Equipes</button>
     <button data-aba="historico" role="tab">Histórico</button>
   </nav>
 
   <main class="conteudo">
-    <!-- USUÁRIOS -->
-    <section id="aba-usuarios">
-      <div class="linha entre">
-        <input class="entrada" id="busca-usuario" placeholder="Buscar por nome ou login" style="flex:1;min-width:200px">
-        <button class="btn secundario" id="btn-importar-colab">Importar colaboradores</button>
-        <button class="btn" id="btn-novo-usuario">+ Novo usuário</button>
-      </div>
-      <div class="tabela-wrap mt"><table class="tabela">
-        <thead><tr><th>Nome</th><th>Login</th><th>Perfil</th><th>Equipe atual</th><th>Situação</th><th></th></tr></thead>
-        <tbody id="tb-usuarios"><tr><td colspan="6" class="carregando">Carregando...</td></tr></tbody>
-      </table></div>
-    </section>
-
     <!-- EQUIPES -->
     <section id="aba-equipes" hidden>
       <div class="linha entre" style="margin-bottom:14px">
@@ -62,88 +48,18 @@
 
     <!-- HISTÓRICO -->
     <section id="aba-historico" hidden>
+      <details class="filtros-fixos"><summary>Filtros</summary>
       <div class="grade-filtros">
         <div class="campo"><label for="hist-usuario">Usuário</label><select id="hist-usuario"></select></div>
         <div class="campo"><label for="hist-equipe">Equipe</label><select id="hist-equipe"></select></div>
       </div>
+      </details>
       <div class="tabela-wrap mt"><table class="tabela">
         <thead><tr><th>Usuário</th><th>Equipe</th><th>Entrou em</th><th>Saiu em</th><th>Alterado por</th></tr></thead>
         <tbody id="tb-historico"></tbody>
       </table></div>
     </section>
   </main>
-
-  <dialog class="modal" id="modal-usuario">
-    <form method="dialog">
-      <div class="modal-topo" id="mu-titulo">Novo usuário</div>
-      <div class="modal-corpo">
-        <div class="campo"><label>Nome</label><input name="nome" required maxlength="80"></div>
-        <div class="campo">
-          <label>Login (usuário)</label>
-          <input name="login" required pattern="[a-zA-Z0-9._\-]{3,40}" autocapitalize="none" autocorrect="off" spellcheck="false">
-          <span class="ajuda">3 a 40 caracteres: letras, números, ponto, hífen ou _. Ex.: joao.silva ou a matrícula.</span>
-        </div>
-        <div class="campo">
-          <label id="mu-senha-rotulo">Senha</label>
-          <input name="senha" type="text" minlength="6" autocomplete="new-password">
-          <span class="ajuda" id="mu-senha-ajuda">Mínimo 6 caracteres.</span>
-        </div>
-        <div class="campo">
-          <label>Perfil</label>
-          <select name="perfil" required>
-            <option value="carregador">Carregador</option>
-            <option value="lider">Líder</option>
-            <option value="admin">Administrador</option>
-          </select>
-        </div>
-        <label class="check" id="mu-ativo-box"><input type="checkbox" name="ativo" value="1"> Usuário ativo</label>
-      </div>
-      <div class="modal-rodape">
-        <button type="button" class="btn secundario" data-cancelar>Cancelar</button>
-        <button type="submit" class="btn">Salvar</button>
-      </div>
-    </form>
-  </dialog>
-
-  <dialog class="modal" id="modal-colab">
-    <form method="dialog">
-      <div class="modal-topo">Importar colaboradores</div>
-      <div class="modal-corpo">
-        <p class="suave" style="margin-top:0">No Excel, selecione as colunas <b>Matrícula, Nome e Função</b> (com ou sem o cabeçalho), copie (Ctrl+C) e cole aqui.</p>
-        <div class="campo">
-          <textarea name="lista" rows="9" required class="entrada" style="width:100%;font-family:monospace;font-size:.85rem" placeholder="12345678	JOAO DA SILVA	AUXILIAR DE EMBARQUE"></textarea>
-        </div>
-        <label class="check" style="margin-bottom:8px"><input type="checkbox" name="senha_matricula" value="1" checked> Senha inicial igual à matrícula</label>
-        <ul class="suave" style="margin:0;padding-left:18px;font-size:.9rem">
-          <li>O login de cada pessoa é a <b>matrícula</b>. Sem a opção acima, a senha inicial é gerada na hora (6 números).</li>
-          <li>Função com Líder, Encarregado ou Supervisor vira perfil <b>Líder</b>; as outras, <b>Carregador</b>.</li>
-          <li>Matrículas já cadastradas são puladas.</li>
-        </ul>
-      </div>
-      <div class="modal-rodape">
-        <button type="button" class="btn secundario" data-cancelar>Cancelar</button>
-        <button type="submit" class="btn">Cadastrar</button>
-      </div>
-    </form>
-  </dialog>
-
-  <dialog class="modal" id="modal-senhas">
-    <form method="dialog">
-      <div class="modal-topo">Colaboradores cadastrados</div>
-      <div class="modal-corpo">
-        <div class="aviso alerta" style="margin-top:0">Anote ou baixe agora: <b>as senhas não aparecem de novo</b>. Depois, entregue a cada pessoa a sua.</div>
-        <div id="senhas-resumo" class="suave"></div>
-        <div class="tabela-wrap mt"><table class="tabela">
-          <thead><tr><th>Matrícula</th><th>Senha</th><th>Nome</th><th>Perfil</th></tr></thead>
-          <tbody id="tb-senhas"></tbody>
-        </table></div>
-      </div>
-      <div class="modal-rodape">
-        <button type="button" class="btn secundario" id="btn-baixar-senhas">Baixar lista</button>
-        <button type="submit" class="btn">Fechar</button>
-      </div>
-    </form>
-  </dialog>
 
   <dialog class="modal" id="modal-equipe">
     <form method="dialog">

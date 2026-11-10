@@ -1,13 +1,13 @@
-// Página inicial: login + painel de ferramentas.
+// Tela principal: login, menu lateral e área onde as ferramentas abrem.
 import { configurado } from './config.js';
 import { entrar, sair, usuarioAtual, PERFIS, BASE } from './auth.js';
 import { tokenSalvo } from './api.js';
-import { ferramentasDoPerfil } from './tools.js';
+import { menuDoPerfil } from './tools.js';
 import { icone } from './icones.js';
 import { $, esc } from './ui.js';
 
-// O botão Voltar e os redirecionamentos das ferramentas carregam o hub dentro do
-// quadro: nesse caso, só avisa a página principal para fechar a ferramenta.
+// Redirecionamentos das ferramentas carregam esta página dentro do quadro:
+// nesse caso, só avisa a página principal.
 if (window.top !== window) {
   window.parent.postMessage({ tipo: 'fechar-ferramenta' }, location.origin);
   await new Promise(() => {});
@@ -16,72 +16,109 @@ if (window.top !== window) {
 // Endereço sempre limpo, sem index.html nem parâmetros
 history.replaceState(history.state, '', BASE.pathname);
 
-const CHAVE_ABERTA = 'cd-ferramenta-aberta';
+const CHAVE_ABERTA = 'cd-item-aberto';
+const CHAVE_RECOLHIDO = 'cd-menu-recolhido';
+const celular = matchMedia('(max-width: 900px)');
+const telas = { login: $('#tela-login'), app: $('#tela-app'), config: $('#tela-config') };
+const mostrar = (nome) => {
+  Object.entries(telas).forEach(([k, el]) => (el.hidden = k !== nome));
+  document.body.classList.toggle('no-app', nome === 'app');
+};
+
 let quadro = null;
-
-function fecharFerramenta() {
-  quadro?.remove();
-  quadro = null;
-  document.body.classList.remove('com-ferramenta');
-  sessionStorage.removeItem(CHAVE_ABERTA);
-  if (!tokenSalvo()) location.reload(); // sessão encerrada: volta ao login
-}
-
-// A ferramenta abre em um quadro por cima do hub; o endereço não muda.
-function abrirFerramenta(f) {
-  quadro?.remove();
-  quadro = document.createElement('iframe');
-  quadro.id = 'quadro-ferramenta';
-  quadro.title = f.nome;
-  quadro.allow = 'camera; clipboard-write; web-share';
-  quadro.src = new URL(f.link, BASE).href;
-  document.body.appendChild(quadro);
-  document.body.classList.add('com-ferramenta');
-  sessionStorage.setItem(CHAVE_ABERTA, f.id);
-  if (!history.state?.ferramenta) history.pushState({ ferramenta: f.id }, '');
-}
-
-window.addEventListener('message', (ev) => {
-  if (ev.origin !== location.origin || ev.source !== quadro?.contentWindow || ev.data?.tipo !== 'fechar-ferramenta') return;
-  if (history.state?.ferramenta) history.replaceState(null, '');
-  fecharFerramenta();
-});
-window.addEventListener('popstate', () => { if (quadro && !history.state?.ferramenta) fecharFerramenta(); });
-
-const telas = { login: $('#tela-login'), hub: $('#tela-hub'), config: $('#tela-config') };
-const mostrar = (nome) => Object.entries(telas).forEach(([k, el]) => (el.hidden = k !== nome));
+let itens = [];
+let itemAtual = null;
 
 $('#logo').innerHTML = icone('caminhao');
+$('#logo-menu').innerHTML = icone('caminhao');
 $('#btn-sair').innerHTML = icone('sair');
+$('#btn-menu').innerHTML = icone('menu');
 $('#btn-sair').addEventListener('click', sair);
 
-function montarHub(perfil) {
-  $('#hub-usuario').textContent = `${perfil.nome} · ${PERFIS[perfil.perfil] || perfil.perfil}`;
-  $('#hub-ola').textContent = `Olá, ${perfil.nome.split(' ')[0]}`;
+// ---------- Menu retrátil ----------
+try { $('#tela-app').classList.toggle('recolhido', localStorage.getItem(CHAVE_RECOLHIDO) === '1'); } catch { /* sem storage */ }
 
-  $('#lista-ferramentas').innerHTML = ferramentasDoPerfil(perfil.perfil).map((f) => {
-    const corpo = `
-      <div class="ico"${f.cor && !f.emBreve ? ` style="--c1:${esc(f.cor[0])};--c2:${esc(f.cor[1])}"` : ''}>${icone(f.icone)}</div>
-      <div>
-        <h2>${esc(f.nome)} ${f.emBreve ? '<span class="selo neutro">Em breve</span>' : ''}</h2>
-        <p>${esc(f.descricao)}</p>
-      </div>`;
-    return f.emBreve
-      ? `<div class="ferramenta em-breve" aria-disabled="true">${corpo}</div>`
-      : `<a class="ferramenta" href="#" data-ferramenta="${esc(f.id)}">${corpo}</a>`;
-  }).join('');
-  $('#lista-ferramentas').onclick = (ev) => {
-    const a = ev.target.closest('[data-ferramenta]');
-    if (!a) return;
-    ev.preventDefault();
-    abrirFerramenta(ferramentasDoPerfil(perfil.perfil).find((f) => f.id === a.dataset.ferramenta));
-  };
+$('#btn-menu').addEventListener('click', () => {
+  const app = $('#tela-app');
+  if (celular.matches) { app.classList.toggle('aberto'); return; }
+  const recolhido = app.classList.toggle('recolhido');
+  try { localStorage.setItem(CHAVE_RECOLHIDO, recolhido ? '1' : '0'); } catch { /* sem storage */ }
+});
+$('#menu-fundo').addEventListener('click', () => $('#tela-app').classList.remove('aberto'));
 
-  const atualizarRede = () => ($('#offline-hub').hidden = navigator.onLine);
-  window.addEventListener('online', atualizarRede);
-  window.addEventListener('offline', atualizarRede);
-  atualizarRede();
-  mostrar('hub');
+function montarMenu(perfil) {
+  $('#app-nome').textContent = perfil.nome;
+  $('#app-perfil').textContent = PERFIS[perfil.perfil] || perfil.perfil;
+  const grupos = menuDoPerfil(perfil.perfil);
+  itens = grupos.flatMap((g) => g.itens.map((i) => ({ ...i, grupo: g.grupo })));
+  $('#menu-itens').innerHTML = grupos.map((g) => `<div class="menu-grupo">${esc(g.grupo)}</div>${g.itens.map((i) => (i.emBreve
+    ? `<div class="menu-item em-breve" title="${esc(i.nome)} (em breve)">${icone(i.icone)}<span>${esc(i.nome)}</span></div>`
+    : `<button class="menu-item" data-item="${esc(i.id)}" title="${esc(i.nome)}">${icone(i.icone)}<span>${esc(i.nome)}</span></button>`)).join('')}`).join('');
+}
+
+$('#menu-itens').addEventListener('click', (ev) => {
+  const b = ev.target.closest('[data-item]');
+  if (b) abrirItem(itens.find((i) => i.id === b.dataset.item));
+});
+
+// ---------- Abrir uma tela ----------
+// As ferramentas ficam em um quadro; o endereço do navegador não muda.
+function abrirItem(item, { historico = true } = {}) {
+  if (!item) return;
+  const url = new URL(item.link, BASE);
+  if (item.aba) url.hash = `aba=${item.aba}`;
+  if (quadro && quadro.dataset.pagina === url.pathname) {
+    quadro.contentWindow.location.replace(url.href);
+  } else {
+    quadro?.remove();
+    quadro = document.createElement('iframe');
+    quadro.id = 'quadro-ferramenta';
+    quadro.dataset.pagina = url.pathname;
+    quadro.allow = 'camera; clipboard-write; web-share';
+    quadro.src = url.href;
+    $('#sync-barra').hidden = true;
+    $('#area').appendChild(quadro);
+  }
+  quadro.title = item.nome;
+  itemAtual = item;
+  $('#t-grupo').textContent = item.grupo;
+  $('#t-tela').textContent = item.nome;
+  document.querySelectorAll('.menu-item[data-item]').forEach((b) => b.classList.toggle('ativo', b.dataset.item === item.id));
+  $('#tela-app').classList.remove('aberto');
+  sessionStorage.setItem(CHAVE_ABERTA, item.id);
+  if (historico) history.pushState({ item: item.id }, '');
+}
+
+const itemInicial = () => itens.find((i) => i.id === sessionStorage.getItem(CHAVE_ABERTA) && !i.emBreve) || itens.find((i) => !i.emBreve);
+
+window.addEventListener('popstate', (ev) => {
+  const item = itens.find((i) => i.id === ev.state?.item);
+  if (item && item.id !== itemAtual?.id) abrirItem(item, { historico: false });
+});
+
+window.addEventListener('message', (ev) => {
+  if (ev.origin !== location.origin || ev.source !== quadro?.contentWindow) return;
+  if (ev.data?.tipo === 'fechar-ferramenta') {
+    if (!tokenSalvo()) { location.reload(); return; }
+    sessionStorage.removeItem(CHAVE_ABERTA);
+    abrirItem(itens.find((i) => !i.emBreve), { historico: false });
+  } else if (ev.data?.tipo === 'sync') {
+    $('#sync-barra').hidden = false;
+    $('#sync-barra').classList.toggle('off', !!ev.data.off);
+    $('#sync-texto').textContent = ev.data.texto;
+    $('#sync-pend').hidden = !ev.data.pend;
+    $('#sync-pend').textContent = ev.data.pend || '';
+  }
+});
+
+function entrarNoSistema(perfil) {
+  montarMenu(perfil);
+  mostrar('app');
+  const item = itemInicial();
+  if (item) {
+    abrirItem(item, { historico: false });
+    history.replaceState({ item: item.id }, '');
+  }
 }
 
 $('#form-login').addEventListener('submit', async (ev) => {
@@ -94,7 +131,7 @@ $('#form-login').addEventListener('submit', async (ev) => {
   try {
     const perfil = await entrar($('#login').value, $('#senha').value);
     $('#senha').value = '';
-    montarHub(perfil);
+    entrarNoSistema(perfil);
   } catch (e) {
     msg.textContent = e.message;
     msg.hidden = false;
@@ -106,10 +143,6 @@ $('#form-login').addEventListener('submit', async (ev) => {
 
 (async () => {
   if (!configurado()) return mostrar('config');
-  const perfil = await usuarioAtual(() => mostrar('login')).catch(() => null);
-  if (!perfil) return mostrar('login');
-  montarHub(perfil);
-  // Recarregou a página com uma ferramenta aberta: continua nela
-  const aberta = ferramentasDoPerfil(perfil.perfil).find((f) => f.id === sessionStorage.getItem(CHAVE_ABERTA) && !f.emBreve);
-  if (aberta) abrirFerramenta(aberta);
+  const perfil = await usuarioAtual(() => { quadro?.remove(); quadro = null; mostrar('login'); }).catch(() => null);
+  if (perfil) entrarNoSistema(perfil); else mostrar('login');
 })();

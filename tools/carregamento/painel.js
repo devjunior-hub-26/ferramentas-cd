@@ -310,7 +310,8 @@ $('#cfg-salvar').addEventListener('click', async () => {
 // ---------------------------------------------------------------
 iniciarAbas($('#abas'), (id) => {
   abaAtual = id;
-  setStatus(resultado || ['importar', 'config'].includes(id) ? '' : 'Escolha o período e toque em "Aplicar filtros".');
+  $('#filtros-caixa').hidden = ['importar', 'config'].includes(id);
+  setStatus(resultado ||['importar', 'config'].includes(id) ? '' : 'Escolha o período e toque em "Aplicar filtros".');
   if (resultado && !resultado.leituras.length) setStatus('Nenhuma leitura encontrada para esses filtros.');
 });
 await carregarOpcoesFiltro().catch((e) => toast(mensagemErro(e), 'erro'));

@@ -173,6 +173,7 @@ function semearAdmin(d) {
 }
 
 export async function chamar(corpo) {
+  carregar(); // a tela principal e a ferramenta aberta dividem os mesmos dados
   await new Promise((r) => setTimeout(r, 120)); // imita o tempo de resposta
   if (!navigator.onLine) throw new TypeError('Failed to fetch'); // permite testar o modo offline
   await iniciar();

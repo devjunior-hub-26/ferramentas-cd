@@ -23,7 +23,7 @@ const LOGIN_INICIAL_ADMIN = 'TROQUE-ESTE-LOGIN';
 const SENHA_INICIAL_ADMIN = 'TROQUE-ESTA-SENHA';
 
 // Mostrada no rodapé do app. Aumente sempre que este arquivo mudar.
-const VERSAO_SERVIDOR = 'v2.9.0';
+const VERSAO_SERVIDOR = 'v3.0.0';
 
 const DIAS_SESSAO = 60;         // por quanto tempo o celular fica logado
 const MAX_TENTATIVAS_LOGIN = 5;  // erros seguidos antes de bloquear por 5 minutos
@@ -42,7 +42,7 @@ const TABELAS = {
   Config: ['chave', 'valor'],
   Sessoes: ['token_hash', 'usuario_id', 'criado_em', 'expira_em'],
   // Quadro da Expedição: status = chamada atual de cada colaborador
-  ExpColaboradores: ['chapa', 'nome', 'funcao', 'setor', 'nivel', 'admissao', 'ferias_mes', 'status'],
+  ExpColaboradores: ['chapa', 'nome', 'funcao', 'setor', 'nivel', 'admissao', 'ferias_mes', 'status', 'usuario_id'],
   ExpHistorico: ['data', 'ts', 'obs', 'foto'],
 };
 
@@ -126,6 +126,7 @@ const ACOES = {
   expedicaoSalvar: { perfis: ['admin'], fn: acaoExpedicaoSalvar },
   expedicaoSalvarColaborador: { perfis: ['admin'], fn: acaoExpedicaoSalvarColaborador },
   expedicaoExcluirColaborador: { perfis: ['admin'], fn: acaoExpedicaoExcluirColaborador },
+  expedicaoVincularConta: { perfis: ['admin'], fn: acaoExpedicaoVincularConta },
   expedicaoSalvarDia: { perfis: ['admin'], fn: acaoExpedicaoSalvarDia },
   expedicaoLimparHistorico: { perfis: ['admin'], fn: acaoExpedicaoLimparHistorico },
 };
@@ -1042,12 +1043,52 @@ function expDiaPublico(d) {
   return { date: d.data, ts: d.ts, obs: d.obs, snapshot: foto };
 }
 
+/**
+ * Une colaboradores e contas: liga quem tem login igual à chapa e ainda não
+ * tem vínculo. Não apaga nada e pode rodar sempre.
+ */
+function expLigarContas() {
+  const sh = aba('ExpColaboradores');
+  const ncol = TABELAS.ExpColaboradores.length;
+  if (texto(sh.getRange(1, ncol, 1, 1).getValues()[0][0]) !== 'usuario_id') {
+    sh.getRange(1, 1, 1, ncol).setNumberFormat('@').setValues([TABELAS.ExpColaboradores]).setFontWeight('bold');
+  }
+  const lista = ler('ExpColaboradores');
+  const usados = {};
+  lista.forEach((c) => { if (c.usuario_id) usados[c.usuario_id] = true; });
+  const porLogin = {};
+  ler('Usuarios').forEach((u) => { if (!usados[u.id] && u.perfil !== 'admin') porLogin[u.login] = u; });
+  const ligar = lista.filter((c) => !c.usuario_id && porLogin[c.chapa]);
+  if (!ligar.length) return;
+  comTrava(() => {
+    ligar.forEach((c) => { c.usuario_id = porLogin[c.chapa].id; });
+    regravar('ExpColaboradores', ligar);
+  });
+}
+
 function acaoExpedicaoDados() {
+  expLigarContas();
   const lista = ler('ExpColaboradores');
   const chamada = {};
   lista.forEach((c) => { chamada[c.chapa] = c.status || null; });
+  const usuarios = {};
+  ler('Usuarios').forEach((u) => { usuarios[u.id] = u; });
+  const equipes = {};
+  ler('Equipes').forEach((e) => { equipes[e.id] = e.nome; });
+  const equipeDe = {};
+  ler('Membros').forEach((m) => { if (!m.fim) equipeDe[m.usuario_id] = equipes[m.equipe_id] || ''; });
+  const ligadas = {};
+  const conta = (u) => ({ id: u.id, login: u.login, perfil: u.perfil, ativo: sim(u.ativo), equipe: equipeDe[u.id] || '' });
+  const employees = lista.map((c) => {
+    const p = expPublico(c);
+    const u = usuarios[c.usuario_id];
+    if (u) { ligadas[u.id] = true; p.Usuario = conta(u); }
+    return p;
+  });
   return {
-    employees: lista.map(expPublico),
+    employees: employees,
+    contas: Object.keys(usuarios).filter((id) => !ligadas[id]).map((id) => perfilPublico(usuarios[id]))
+      .sort((a, b) => a.nome.localeCompare(b.nome)),
     attendance: chamada,
     history: ler('ExpHistorico').map(expDiaPublico).sort((a, b) => (a.ts < b.ts ? 1 : a.ts > b.ts ? -1 : 0)),
   };
@@ -1060,14 +1101,16 @@ function acaoExpedicaoImportar(d) {
   if (lista.length > 1000) throw new ErroApp('DADOS_INVALIDOS', 'Importe no máximo 1000 colaboradores por vez.');
   return comTrava(() => {
     const atual = {};
-    ler('ExpColaboradores').forEach((c) => { atual[c.chapa] = c.status; });
+    ler('ExpColaboradores').forEach((c) => { atual[c.chapa] = c; });
     const vistos = {};
     const novos = [];
     lista.forEach((x) => {
       const c = expColaborador(x);
       if (vistos[c.chapa]) return;
       vistos[c.chapa] = true;
-      c.status = d.attendance ? expStatus(d.attendance[c.chapa]) : (atual[c.chapa] || '');
+      const antes = atual[c.chapa];
+      c.status = d.attendance ? expStatus(d.attendance[c.chapa]) : (antes ? antes.status : '');
+      c.usuario_id = antes ? antes.usuario_id : '';
       novos.push(c);
     });
     const dias = Array.isArray(d.history) ? d.history.map(expDia) : null;
@@ -1094,27 +1137,108 @@ function acaoExpedicaoSalvar(d) {
   });
 }
 
-function acaoExpedicaoSalvarColaborador(d) {
+/** Bloqueia a conta e desconecta os aparelhos dela. O histórico é mantido. */
+function expBloquearConta(u, admin) {
+  if (u.id === admin.id) throw new ErroApp('DADOS_INVALIDOS', 'Você não pode bloquear o próprio acesso.');
+  u.ativo = NAO;
+  atualizar('Usuarios', u);
+  encerrarSessoes((s) => s.usuario_id === u.id);
+}
+
+/**
+ * Aplica "Tem acesso à plataforma?" no colaborador `c`.
+ * acesso = { ativo, login, senha, perfil }. Grava só a conta; o vínculo
+ * fica em c.usuario_id para quem chamou salvar o colaborador.
+ */
+function expAplicarAcesso(c, acesso, admin) {
+  const usuarios = ler('Usuarios');
+  let u = c.usuario_id ? usuarios.find((x) => x.id === c.usuario_id) : null;
+  if (!acesso.ativo) {
+    if (u && sim(u.ativo)) expBloquearConta(u, admin);
+    return;
+  }
+  const login = texto(acesso.login).trim().toLowerCase();
+  if (!RE_LOGIN.test(login)) throw new ErroApp('DADOS_INVALIDOS', 'Usuário inválido: use de 3 a 40 letras minúsculas, números, ponto, hífen ou sublinhado.');
+  validarNomePerfil(c.nome, acesso.perfil);
+  const outro = usuarios.find((x) => x.login === login && (!u || x.id !== u.id));
+  if (outro) {
+    const dono = ler('ExpColaboradores').find((x) => x.usuario_id === outro.id && x.chapa !== c.chapa);
+    if (u || dono) throw new ErroApp('DUPLICADO', 'Já existe uma conta com esse usuário.');
+    u = outro; // conta solta com o mesmo login: passa a ser desta pessoa
+  }
+  if (!u) {
+    const nova = novoUsuario({ login: login, nome: c.nome, perfil: acesso.perfil, senha: acesso.senha });
+    inserir('Usuarios', [nova]);
+    c.usuario_id = nova.id;
+    return;
+  }
+  if (u.id === admin.id && acesso.perfil !== 'admin') throw new ErroApp('DADOS_INVALIDOS', 'Você não pode tirar o próprio perfil de administrador.');
+  u.login = login;
+  u.nome = c.nome.slice(0, 100);
+  u.perfil = acesso.perfil;
+  u.ativo = SIM;
+  if (acesso.senha) {
+    validarSenha(acesso.senha);
+    u.sal = uuid();
+    u.senha_hash = hashSenha(String(acesso.senha), u.sal);
+  }
+  atualizar('Usuarios', u);
+  c.usuario_id = u.id;
+  if (acesso.senha) encerrarSessoes((s) => s.usuario_id === u.id && s.token_hash !== admin._tokenHash);
+  if (u.perfil === 'admin') tirarAdminDasEquipes(u, admin);
+}
+
+function acaoExpedicaoSalvarColaborador(d, admin) {
   const c = expColaborador(d);
   return comTrava(() => {
     const atual = ler('ExpColaboradores').find((x) => x.chapa === c.chapa);
+    let alvo;
     if (d.novo) {
       if (atual) throw new ErroApp('DUPLICADO', 'Chapa já cadastrada.');
       c.status = '';
-      inserir('ExpColaboradores', [c]);
+      c.usuario_id = '';
+      alvo = c;
+      if (d.acesso) expAplicarAcesso(alvo, d.acesso, admin);
+      inserir('ExpColaboradores', [alvo]);
     } else {
       if (!atual) throw new ErroApp('NAO_ENCONTRADO', 'Colaborador não encontrado.');
       Object.keys(c).forEach((k) => { atual[k] = c[k]; });
-      atualizar('ExpColaboradores', atual);
+      alvo = atual;
+      if (d.acesso) expAplicarAcesso(alvo, d.acesso, admin);
+      atualizar('ExpColaboradores', alvo);
     }
+    const u = alvo.usuario_id ? ler('Usuarios').find((x) => x.id === alvo.usuario_id) : null;
+    return { usuario: u ? { id: u.id, login: u.login, perfil: u.perfil, ativo: sim(u.ativo), equipe: '' } : null };
+  });
+}
+
+/** Tira da lista. Se a pessoa tinha acesso, a conta é bloqueada (histórico fica). */
+function acaoExpedicaoExcluirColaborador(d, admin) {
+  const chapa = texto(d.chapa);
+  return comTrava(() => {
+    const lista = ler('ExpColaboradores');
+    const c = lista.find((x) => x.chapa === chapa);
+    const u = c && c.usuario_id ? ler('Usuarios').find((x) => x.id === c.usuario_id) : null;
+    if (u && sim(u.ativo)) expBloquearConta(u, admin);
+    substituirTabela('ExpColaboradores', ler('ExpColaboradores').filter((x) => x.chapa !== chapa));
     return true;
   });
 }
 
-function acaoExpedicaoExcluirColaborador(d) {
+/** Liga uma conta sem colaborador a uma pessoa da lista. */
+function acaoExpedicaoVincularConta(d) {
   const chapa = texto(d.chapa);
   return comTrava(() => {
-    substituirTabela('ExpColaboradores', ler('ExpColaboradores').filter((c) => c.chapa !== chapa));
+    const u = ler('Usuarios').find((x) => x.id === d.usuario_id);
+    if (!u) throw new ErroApp('NAO_ENCONTRADO', 'Conta não encontrada.');
+    if (u.perfil === 'admin') throw new ErroApp('DADOS_INVALIDOS', 'A conta do administrador fica à parte.');
+    const lista = ler('ExpColaboradores');
+    const c = lista.find((x) => x.chapa === chapa);
+    if (!c) throw new ErroApp('NAO_ENCONTRADO', 'Colaborador não encontrado.');
+    if (c.usuario_id && c.usuario_id !== u.id) throw new ErroApp('DUPLICADO', 'Esse colaborador já tem uma conta.');
+    if (lista.some((x) => x.usuario_id === u.id && x.chapa !== chapa)) throw new ErroApp('DUPLICADO', 'Essa conta já está ligada a outro colaborador.');
+    c.usuario_id = u.id;
+    atualizar('ExpColaboradores', c);
     return true;
   });
 }

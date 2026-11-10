@@ -15,22 +15,22 @@ Escreva a lógica da ferramenta no `<script type="module">` ou em um arquivo `.j
 
 ## 2. Cadastre no hub
 
-Abra `assets/js/tools.js` e inclua um item:
+Abra `assets/js/tools.js` e inclua um item no grupo certo do `MENU`:
 
 ```js
 {
   id: 'inventario',
   nome: 'Inventário Rotativo',
-  descricao: 'Contagem de endereços por leitura de etiqueta.',
   icone: 'caixa',                    // nome de um ícone de assets/js/icones.js
   link: 'tools/inventario/',
+  aba: 'contagem',                   // opcional: seção da página (data-aba)
   perfis: ['admin', 'lider', 'carregador'],
 },
 ```
 
-Se já existia um card "Em breve" com o mesmo `id`, basta apagar a linha `emBreve: true`.
+Se já existia um item "Em breve" com o mesmo `id`, basta apagar a linha `emBreve: true`. Filtros da tela vão em `<details class="filtros-fixos">`, que fica fixo no topo. Tabelas dentro de `.tabela-wrap` viram cartões sozinhas quando não cabem.
 
-> O campo `perfis` só esconde o card. A proteção de verdade é o `exigirLogin([...])` da página e, principalmente, a checagem de perfil de cada ação no servidor (`apps-script/Codigo.gs`).
+> O campo `perfis` só esconde o item do menu. A proteção de verdade é o `exigirLogin([...])` da página e, principalmente, a checagem de perfil de cada ação no servidor (`apps-script/Codigo.gs`).
 
 ## 3. Se a ferramenta guardar dados
 

@@ -40,6 +40,8 @@ const selo = (st) => (st && STATUS[st]
 let colaboradores = [];
 let chamada = {};
 let historico = [];
+let contas = []; // contas de acesso sem colaborador ligado
+let editandoConta = null;
 let abaAtual = 'org';
 let abasProntas = false;
 let filtroOrg = 'all', filtroAtt = 'all', filtroFerias = 'all', filtroFeriasMes = 'all', filtroMotivo = 'all';
@@ -65,7 +67,7 @@ const hojeArquivo = () => hojeISO();
 // as marcações feitas sem sinal até conseguir enviar.
 function guardarCopia() {
   try {
-    localStorage.setItem(CHAVE, JSON.stringify({ employees: colaboradores, attendance: chamada, history: historico, pendentes }));
+    localStorage.setItem(CHAVE, JSON.stringify({ employees: colaboradores, attendance: chamada, history: historico, contas, pendentes }));
   } catch { /* sem espaço: os dados continuam no servidor */ }
 }
 
@@ -138,6 +140,7 @@ function normalizarColaboradores(lista) {
     NIVEL: String(e.NIVEL ?? '').trim(),
     Admissao: /^\d{4}-\d{2}-\d{2}$/.test(e.Admissao) ? e.Admissao : '',
     FeriasMes: Number.isInteger(e.FeriasMes) && e.FeriasMes >= 0 && e.FeriasMes < 12 ? e.FeriasMes : null,
+    Usuario: e.Usuario || null,
   })).filter((e) => {
     if (!Number.isSafeInteger(e.Chapa) || e.Chapa <= 0 || !e.Nome || vistos.has(e.Chapa)) return false;
     vistos.add(e.Chapa);
@@ -158,6 +161,7 @@ function aplicarEstado(estado) {
   chamada = {};
   colaboradores.forEach((e) => { chamada[e.Chapa] = normalizarStatus(salvo[e.Chapa]); });
   historico = Array.isArray(estado.history) ? historicoValido(estado.history) : [];
+  contas = Array.isArray(estado.contas) ? estado.contas : [];
 }
 
 // Marcações ainda não enviadas valem mais do que o que veio do servidor.
@@ -717,9 +721,17 @@ function realce(texto, busca) {
 
 function renderHierarquia() {
   const q = $('#cfg-busca').value.toLowerCase();
+  const setor = $('#f-cfg-setor').value;
+  const acesso = $('#f-cfg-acesso').value;
+  const situacao = (e) => (!e.Usuario ? 'sem' : e.Usuario.ativo ? 'com' : 'bloq');
+  $('#cfg-kpis').innerHTML = kpi('Colaboradores', colaboradores.length)
+    + kpi('Com acesso', colaboradores.filter((e) => situacao(e) === 'com').length)
+    + kpi('Sem acesso', colaboradores.filter((e) => situacao(e) === 'sem').length)
+    + kpi('Bloqueados', colaboradores.filter((e) => situacao(e) === 'bloq').length);
   const valor = (e) => ({ NIVEL: nivelNum(e.NIVEL), funcao: funcao(e), Admissao: e.Admissao || '' }[colOrdem] ?? e[colOrdem]);
   const lista = colaboradores
-    .filter((e) => e.Nome.toLowerCase().includes(q) || funcao(e).toLowerCase().includes(q) || e.Setor.toLowerCase().includes(q) || String(e.Chapa).includes(q))
+    .filter((e) => (setor === 'all' || e.Setor === setor) && (acesso === 'all' || situacao(e) === acesso))
+    .filter((e) => e.Nome.toLowerCase().includes(q) || funcao(e).toLowerCase().includes(q) || e.Setor.toLowerCase().includes(q) || String(e.Chapa).includes(q) || (e.Usuario?.login || '').includes(q))
     .sort((a, b) => {
       const va = valor(a), vb = valor(b);
       if (va < vb) return ordemAsc ? -1 : 1;
@@ -738,11 +750,84 @@ function renderHierarquia() {
     <td><span class="selo">${esc(e.NIVEL || '—')}</span></td>
     <td>${e.Admissao ? dataBR(e.Admissao) : '<span class="selo alerta">Não informada</span>'}</td>
     <td>${e.FeriasMes !== null ? `<span class="selo escuro">${MESES_NOME[e.FeriasMes]}</span>` : '—'}</td>
+    <td class="acesso-info">${seloAcesso(e.Usuario)}</td>
     <td><div class="acoes">
       <button class="btn pequeno secundario" data-acao="editarColaborador" data-chapa="${e.Chapa}">Editar</button>
       <button class="btn pequeno perigo" data-acao="excluirColaborador" data-chapa="${e.Chapa}">Excluir</button>
     </div></td>
-  </tr>`).join('') || '<tr><td colspan="8" class="vazio">Nenhum colaborador encontrado.</td></tr>';
+  </tr>`).join('') || '<tr><td colspan="9" class="vazio">Nenhum colaborador encontrado.</td></tr>';
+
+  $('#contas-caixa').hidden = !contas.length;
+  $('#contas-corpo').innerHTML = contas.map((c) => `<tr>
+    <td><b>${esc(c.nome)}</b></td>
+    <td>${esc(c.login)}</td>
+    <td>${PERFIS[c.perfil] || esc(c.perfil)}</td>
+    <td>${c.ativo ? '<span class="selo sucesso">Ativa</span>' : '<span class="selo erro">Bloqueada</span>'}</td>
+    <td><div class="acoes"><button class="btn pequeno secundario" data-acao="editarConta" data-id="${esc(c.id)}">${c.perfil === 'admin' ? 'Editar' : 'Editar ou vincular'}</button></div></td>
+  </tr>`).join('');
+}
+
+function seloAcesso(u) {
+  if (!u) return '<span class="selo neutro">Sem acesso</span>';
+  const info = `<small>${esc(u.login)} · ${PERFIS[u.perfil] || esc(u.perfil)}${u.equipe ? ` · ${esc(u.equipe)}` : ''}</small>`;
+  return `${u.ativo ? '<span class="selo sucesso">Com acesso</span>' : '<span class="selo erro">Bloqueado</span>'}${info}`;
+}
+
+const perfilDaFuncao = (f) => (/l[ií]der|encarregad|supervis|coordenad/i.test(f || '') ? 'lider' : 'carregador');
+
+function mostrarAcesso() {
+  const ligado = $('#f-acesso').checked;
+  $('#bloco-acesso').hidden = !ligado;
+  $('#f-login').required = ligado;
+  // Senha obrigatória só quando a pessoa ainda não tem conta
+  $('#f-senha').required = ligado && !colaboradores.find((x) => x.Chapa === editando)?.Usuario;
+}
+
+// Marcou "tem acesso" em quem ainda não tem conta: sugere a chapa
+function sugerirAcesso() {
+  const e = colaboradores.find((x) => x.Chapa === editando);
+  if ($('#f-acesso').checked && !e?.Usuario) {
+    const chapa = $('#f-chapa').value;
+    if (!$('#f-login').value) $('#f-login').value = chapa;
+    if (!$('#f-senha').value && chapa.length >= 6) $('#f-senha').value = chapa;
+    $('#f-perfil').value = perfilDaFuncao($('#f-funcao').value);
+  }
+  mostrarAcesso();
+}
+
+function abrirConta(id) {
+  const c = contas.find((x) => x.id === id);
+  if (!c) return;
+  editandoConta = c;
+  $('#form-conta').reset();
+  $('#c-nome').value = c.nome;
+  $('#c-login').value = c.login;
+  $('#c-perfil').value = c.perfil;
+  $('#c-ativo').checked = c.ativo;
+  $('#c-vinculo-caixa').hidden = c.perfil === 'admin';
+  $('#c-vinculo').innerHTML = '<option value="">Não vincular agora</option>'
+    + colaboradores.filter((e) => !e.Usuario).sort((a, b) => a.Nome.localeCompare(b.Nome))
+      .map((e) => `<option value="${e.Chapa}">${esc(e.Nome)} (${e.Chapa})</option>`).join('');
+  $('#dlg-conta').showModal();
+}
+
+async function salvarConta() {
+  const c = editandoConta;
+  const corpo = { id: c.id, nome: $('#c-nome').value.trim(), perfil: $('#c-perfil').value, ativo: $('#c-ativo').checked };
+  if ($('#c-senha').value) corpo.senha = $('#c-senha').value;
+  const botao = $('#form-conta [type=submit]');
+  botao.disabled = true;
+  botao.textContent = 'Salvando…';
+  let ok = await noServidor('atualizarUsuario', corpo);
+  const chapa = $('#c-vinculo').value;
+  if (ok && chapa && c.perfil !== 'admin') ok = await noServidor('expedicaoVincularConta', { usuario_id: c.id, chapa });
+  botao.disabled = false;
+  botao.textContent = 'Salvar';
+  if (!ok) return;
+  $('#dlg-conta').close();
+  toast('Conta atualizada.', 'sucesso');
+  await carregarDoServidor();
+  atualizarTela();
 }
 
 function garantirOpcao(select, valor) {
@@ -765,6 +850,13 @@ function abrirColaborador(chapa) {
     garantirOpcao($('#f-setor'), e.Setor);
     $('#f-ferias').value = e.FeriasMes === null ? '' : e.FeriasMes;
   }
+  const u = e?.Usuario;
+  $('#f-acesso').checked = !!u?.ativo;
+  $('#f-login').value = u?.login || '';
+  $('#f-perfil').value = u?.perfil || 'carregador';
+  $('#f-senha-rotulo').textContent = u ? 'Nova senha (opcional)' : 'Senha *';
+  $('#f-senha-ajuda').textContent = u ? 'Deixe em branco para manter a senha atual.' : 'Mínimo 6 caracteres. Informe à pessoa.';
+  mostrarAcesso();
   $('#dlg-colaborador').showModal();
 }
 
@@ -784,27 +876,30 @@ async function salvarColaborador() {
   const botao = $('#form-colaborador [type=submit]');
   botao.disabled = true;
   botao.textContent = 'Salvando…';
-  const salvo = await noServidor('expedicaoSalvarColaborador', { Chapa: chapa, novo, ...dados });
+  const acesso = { ativo: $('#f-acesso').checked, login: $('#f-login').value, senha: $('#f-senha').value, perfil: $('#f-perfil').value };
+  const salvo = await noServidor('expedicaoSalvarColaborador', { Chapa: chapa, novo, ...dados, acesso });
   botao.disabled = false;
   botao.textContent = 'Salvar';
   if (!salvo) return;
   delete pendentes.ferias[chapa];
   if (novo) {
-    colaboradores.push({ Chapa: chapa, ...dados });
+    colaboradores.push({ Chapa: chapa, ...dados, Usuario: salvo.usuario });
     chamada[chapa] = null;
   } else {
     const i = colaboradores.findIndex((e) => e.Chapa === chapa);
-    colaboradores[i] = { ...colaboradores[i], ...dados };
+    colaboradores[i] = { ...colaboradores[i], ...dados, Usuario: salvo.usuario };
   }
   toast(novo ? 'Colaborador adicionado.' : 'Dados atualizados.', 'sucesso');
   $('#dlg-colaborador').close();
   guardarCopia();
   atualizarTela();
+  carregarDoServidor().then(atualizarTela); // atualiza equipe e contas sem colaborador
 }
 
 async function excluirColaborador(chapa) {
   const e = colaboradores.find((x) => x.Chapa === chapa);
-  if (!e || !(await confirmar(`Remover ${e.Nome} (${funcao(e)})?`, 'Excluir', true))) return;
+  const avisoConta = e?.Usuario?.ativo ? ' O acesso à plataforma também será bloqueado.' : '';
+  if (!e || !(await confirmar(`Remover ${e.Nome} (${funcao(e)})?${avisoConta}`, 'Excluir', true))) return;
   // Some da tela na hora: o servidor leva alguns segundos para responder.
   const posicao = colaboradores.indexOf(e);
   const statusAntes = chamada[chapa];
@@ -922,7 +1017,6 @@ function marcarChip(el) {
 const ACOES = {
   escolherArquivo: () => $('#arquivo').click(),
   baixarBackup,
-  filtroOrg: (el) => { marcarChip(el); filtroOrg = el.dataset.valor; renderOrg(); },
   fotoOrg,
   compartilharFoto,
   baixarFoto,
@@ -930,7 +1024,6 @@ const ACOES = {
   relSetor: (el) => { marcarChip(el); relSetor = el.dataset.valor; renderRelatorio(); },
   imprimirRelatorio,
   exportarRelatorio,
-  filtroAtt: (el) => { marcarChip(el); filtroAtt = el.dataset.valor; renderChamada(); },
   ciclo: (el) => {
     const c = Number(el.dataset.chapa);
     marcar(c, ORDEM_STATUS[(ORDEM_STATUS.indexOf(statusDe(c)) + 1) % ORDEM_STATUS.length]);
@@ -951,32 +1044,15 @@ const ACOES = {
   salvarHistorico,
   exportarHistorico,
   limparHistorico,
-  periodo: (el) => {
-    marcarChip(el);
-    const dias = Number(el.dataset.valor);
-    if (!dias) { $('#hist-de').value = ''; $('#hist-ate').value = ''; } else {
-      const ini = new Date();
-      ini.setDate(ini.getDate() - dias + 1);
-      $('#hist-de').value = hojeISO(ini);
-      $('#hist-ate').value = hojeISO();
-    }
-    renderHistorico();
-  },
-  motivo: (el) => { marcarChip(el); filtroMotivo = el.dataset.valor; renderHistorico(); },
-  filtroFerias: (el) => { marcarChip(el); filtroFerias = el.dataset.valor; renderFerias(); },
-  filtroFeriasMes: (el) => {
-    marcarChip(el);
-    const v = el.dataset.valor;
-    filtroFeriasMes = v === 'all' || v === 'prog' ? v : Number(v);
-    renderFerias();
-  },
   feriasMes: (el) => alternarFerias(Number(el.dataset.chapa), Number(el.dataset.valor)),
   ordenar: (el) => {
     const col = el.dataset.valor;
     ordemAsc = colOrdem === col ? !ordemAsc : true;
     colOrdem = col;
+    $('#cfg-ordem').value = col;
     renderHierarquia();
   },
+  editarConta: (el) => abrirConta(el.dataset.id),
   novoColaborador: () => abrirColaborador(null),
   editarColaborador: (el) => abrirColaborador(Number(el.dataset.chapa)),
   excluirColaborador: (el) => excluirColaborador(Number(el.dataset.chapa)),
@@ -1000,10 +1076,32 @@ $('#form-colaborador').addEventListener('submit', (ev) => { ev.preventDefault();
 $('#cfg-busca').addEventListener('input', renderHierarquia);
 $('#cfg-ordem').addEventListener('change', (ev) => { colOrdem = ev.target.value; ordemAsc = true; renderHierarquia(); });
 $('#rel-busca').addEventListener('input', renderRelatorio);
-['#hist-de', '#hist-ate'].forEach((id) => $(id).addEventListener('change', () => {
-  $$('[data-acao="periodo"]').forEach((b) => b.classList.remove('ativo'));
-  renderHistorico();
-}));
+$('#form-conta').addEventListener('submit', (ev) => { ev.preventDefault(); salvarConta(); });
+$('#f-acesso').addEventListener('change', sugerirAcesso);
+
+// Filtros fixos no topo
+const aoMudar = {
+  '#f-org-setor': (v) => { filtroOrg = v; renderOrg(); },
+  '#f-att-setor': (v) => { filtroAtt = v; renderChamada(); },
+  '#f-hist-motivo': (v) => { filtroMotivo = v; renderHistorico(); },
+  '#f-hist-periodo': (v) => {
+    const dias = Number(v);
+    if (!dias && v !== 'x') { $('#hist-de').value = ''; $('#hist-ate').value = ''; } else if (dias) {
+      const ini = new Date();
+      ini.setDate(ini.getDate() - dias + 1);
+      $('#hist-de').value = hojeISO(ini);
+      $('#hist-ate').value = hojeISO();
+    }
+    renderHistorico();
+  },
+  '#hist-de': () => { $('#f-hist-periodo').value = 'x'; renderHistorico(); },
+  '#hist-ate': () => { $('#f-hist-periodo').value = 'x'; renderHistorico(); },
+  '#f-fer-setor': (v) => { filtroFerias = v; renderFerias(); },
+  '#f-fer-mes': (v) => { filtroFeriasMes = v === 'all' || v === 'prog' ? v : Number(v); renderFerias(); },
+  '#f-cfg-setor': renderHierarquia,
+  '#f-cfg-acesso': renderHierarquia,
+};
+Object.entries(aoMudar).forEach(([id, fn]) => $(id).addEventListener('change', (ev) => fn(ev.target.value)));
 
 // ---------- Início ----------
 const TELAS = { org: renderOrg, att: renderChamada, hist: renderHistorico, ferias: renderFerias, cfg: renderHierarquia };
@@ -1023,8 +1121,8 @@ function atualizarTela() {
   }
 }
 
-$('#ferias-meses').innerHTML = [['all', 'Todos os meses'], ['prog', 'Programados'], ...MESES.map((m, i) => [i, m])]
-  .map(([v, r]) => `<button class="chip ${v === 'all' ? 'ativo' : ''}" data-acao="filtroFeriasMes" data-valor="${v}">${r}</button>`).join('');
+$('#f-fer-mes').innerHTML = [['all', 'Todos os meses'], ['prog', 'Programados'], ...MESES_NOME.map((m, i) => [i, m])]
+  .map(([v, r]) => `<option value="${v}">${r}</option>`).join('');
 $('#f-ferias').innerHTML = '<option value="">Não programado</option>' + MESES_NOME.map((m, i) => `<option value="${i}">${m}</option>`).join('');
 
 window.addEventListener('online', enviarPendentes);

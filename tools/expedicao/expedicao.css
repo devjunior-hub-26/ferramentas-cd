@@ -175,7 +175,6 @@ details.cartao summary { cursor: pointer; min-height: 28px; }
 }
 
 /* ---------- Celular: nada rola para o lado ---------- */
-.so-celular, #org-lista { display: none; }
 .org-card { position: relative; background: var(--branco); border-radius: 16px; box-shadow: var(--sombra-p); padding: 11px 14px 11px 22px; }
 .org-card::before { content: ""; position: absolute; left: 8px; top: 12px; bottom: 12px; width: 5px; border-radius: 3px; background: var(--cor-no); }
 .org-card.sup { --cor-no: var(--org-sup); }
@@ -192,30 +191,36 @@ details.org-card summary { display: flex; align-items: center; justify-content: 
 .org-ramo { display: flex; flex-direction: column; gap: 8px; }
 .org-filhos { display: flex; flex-direction: column; gap: 8px; margin-left: 8px; padding-left: 10px; border-left: 2px solid var(--borda); }
 
-@media (max-width: 760px) {
-  .so-celular { display: flex; }
-  #org-lista { display: flex; flex-direction: column; gap: 8px; }
-  /* A árvore larga fica fora da tela: só serve para gerar a foto */
-  .org-caixa { position: fixed; top: -99999px; left: 0; overflow: visible; }
 
-  .ferias-caixa { overflow: visible; background: transparent; border-radius: 0; box-shadow: none; }
+/* ---------- Layout corporativo ---------- */
+.so-celular { display: none; }
+#org-lista { display: flex; flex-direction: column; gap: 8px; }
+.org-caixa { position: fixed; top: -99999px; left: 0; overflow: visible; }
+.org-card, .pessoa, .kpi { border-radius: var(--raio); }
+.org-card { border: 1px solid var(--borda); box-shadow: none; }
+.pessoa { border: 1px solid var(--borda); box-shadow: none; min-height: 52px; }
+.pessoa:active { transform: none; }
+.chip { border-radius: var(--raio-p); box-shadow: none; border: 1px solid var(--borda); min-height: var(--toque-p); font-size: .86rem; }
+.setor-bloco h3 { padding-bottom: 6px; border-bottom: 1px solid var(--borda); }
+.ferias-caixa, .org-caixa { border-radius: var(--raio); box-shadow: var(--sombra); }
+.ferias-caixa { border: 1px solid var(--borda); overflow: hidden; }
+.fer-linha { min-width: 0; grid-template-columns: minmax(150px, 210px) repeat(12, minmax(0, 1fr)); }
+.dia { box-shadow: none; }
+.acesso-info small { display: block; font-size: .74rem; color: var(--texto-suave); margin-top: 2px; }
+
+@media (max-width: 900px) {
+  .ferias-caixa { overflow: visible; background: transparent; border: 0; border-radius: 0; box-shadow: none; }
   .fer-linha.cabeca { display: none; }
-  .fer-linha {
-    grid-template-columns: repeat(6, 1fr); gap: 6px; min-width: 0; margin-bottom: 10px; padding: 12px;
-    background: var(--branco); border: 0; border-radius: 18px; box-shadow: var(--sombra-p);
-  }
-  .fer-linha:last-child { border: 0; }
+  .fer-linha { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; margin-bottom: 8px; padding: 12px; background: var(--branco); border: 1px solid var(--borda); border-radius: var(--raio); }
+  .fer-linha:last-child { border: 1px solid var(--borda); }
   .fer-nome { grid-column: 1 / -1; padding: 0 2px 6px; border: 0; }
-  .mes, .mes:last-child { min-height: 44px; border: 0; border-radius: 10px; background: var(--fundo); }
-  .mes::before { content: attr(data-mes); font-size: .8rem; font-weight: 600; color: var(--texto-suave); }
+  .mes, .mes:last-child { min-height: 44px; border: 0; border-radius: 7px; background: var(--fundo); }
+  .mes::before { content: attr(data-mes); font-size: .78rem; font-weight: 600; color: var(--texto-suave); }
   .mes .marca { display: none; }
   .mes.limite { background: var(--erro-fundo); }
   .mes.limite::before { color: var(--erro); }
   .mes.prog { background: var(--cor); }
   .mes.prog::before { color: var(--branco); }
-
-  .rel-bloco { box-shadow: none; overflow: visible; }
-  .rel-cabeca { border-radius: 14px; margin-bottom: 8px; }
-  .rel-bloco .tabela tr { box-shadow: 0 0 0 1px var(--borda); }
-  .rel-bloco .tabela td:first-child { display: none; }
 }
+.rel-bloco .em-cartoes .tabela tr { border: 1px solid var(--borda); }
+.rel-bloco .em-cartoes .tabela td:first-child { display: none; }

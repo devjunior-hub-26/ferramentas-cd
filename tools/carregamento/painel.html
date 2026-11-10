@@ -21,7 +21,7 @@
   </header>
 
   <main class="conteudo">
-    <form class="cartao" id="filtros">
+    <details class="filtros-fixos" id="filtros-caixa"><summary>Filtros</summary><form id="filtros">
       <div class="grade-filtros">
         <div class="campo"><label for="f-ini">Data inicial</label><input type="date" id="f-ini" required></div>
         <div class="campo"><label for="f-fim">Data final</label><input type="date" id="f-fim" required></div>
@@ -33,8 +33,7 @@
         <button class="btn" type="submit" id="btn-aplicar">Aplicar filtros</button>
         <button class="btn secundario" type="button" id="btn-exportar" disabled></button>
       </div>
-    </form>
-  </main>
+    </form></details>
 
   <nav class="abas" id="abas" role="tablist">
     <button data-aba="prod" role="tab">Produtividade</button>
@@ -46,7 +45,6 @@
     <button data-aba="config" role="tab" data-admin hidden>Configurações</button>
   </nav>
 
-  <main class="conteudo">
     <div id="status" class="carregando">Escolha o período e toque em "Aplicar filtros".</div>
 
     <!-- PRODUTIVIDADE -->

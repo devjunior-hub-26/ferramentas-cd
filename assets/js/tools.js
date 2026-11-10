@@ -1,83 +1,58 @@
 // =========================================================
-//  LISTA DE FERRAMENTAS DO HUB
-//  Para adicionar uma ferramenta: inclua um item aqui e crie a pasta
+//  MENU LATERAL DO SISTEMA
+//  Para adicionar uma tela: inclua um item no grupo certo e crie a pasta
 //  /tools/<id>/ com um index.html (veja docs/NOVA-FERRAMENTA.md).
 //
-//  id         identificador único (sem espaço)
-//  nome       título do card
-//  descricao  frase curta mostrada no card
-//  icone      nome de um ícone de assets/js/icones.js
-//  link       caminho a partir da raiz do site
-//  perfis     perfis que veem o card: 'admin', 'lider', 'carregador'
-//  cor        cor do ícone na tela inicial, em degradê: ['#clara', '#escura']
-//  emBreve    true = card aparece desabilitado com o selo "Em breve"
+//  id       identificador único (sem espaço)
+//  nome     texto no menu e no título da tela
+//  icone    nome de um ícone de assets/js/icones.js
+//  link     caminho da página a partir da raiz do site
+//  aba      seção da página que o item abre (data-aba)
+//  perfis   perfis que veem o item: 'admin', 'lider', 'carregador'
+//  emBreve  true = item aparece desabilitado
 // =========================================================
-export const FERRAMENTAS = [
-  {
-    id: 'carregamento',
-    nome: 'Produtividade de Carregamento',
-    descricao: 'Leia o QR Code das cargas e registre o carregamento da sua equipe.',
-    icone: 'caminhao',
-    cor: ['#FF9A3D', '#F0620F'],
-    link: 'tools/carregamento/',
-    perfis: ['lider', 'carregador'],
-  },
-  {
-    id: 'carregamento-painel',
-    nome: 'Painel de Produtividade',
-    descricao: 'Lançamentos, cruzamento com a 967, divergências e relatório em Excel.',
-    icone: 'grafico',
-    cor: ['#3D67C4', '#102A63'],
-    link: 'tools/carregamento/painel.html',
-    perfis: ['admin', 'lider'],
-  },
-  {
-    id: 'expedicao',
-    nome: 'Quadro da Expedição',
-    descricao: 'Organograma, chamada, histórico, férias e hierarquia.',
-    icone: 'organograma',
-    cor: ['#34C77B', '#128A52'],
-    link: 'tools/expedicao/',
-    perfis: ['admin'],
-  },
-  {
-    id: 'admin',
-    nome: 'Usuários e Equipes',
-    descricao: 'Cadastre usuários, monte as equipes e veja o histórico.',
-    icone: 'usuarios',
-    cor: ['#A06BFF', '#6A3DE8'],
-    link: 'tools/admin/',
-    perfis: ['admin'],
-  },
-  {
-    id: 'inventario',
-    nome: 'Inventário Rotativo',
-    descricao: 'Contagem de endereços por leitura de etiqueta.',
-    icone: 'caixa',
-    link: '#',
-    perfis: ['admin', 'lider', 'carregador'],
-    emBreve: true,
-  },
-  {
-    id: 'checklist',
-    nome: 'Checklist de Equipamentos',
-    descricao: 'Inspeção diária de empilhadeiras e paleteiras.',
-    icone: 'prancheta',
-    link: '#',
-    perfis: ['admin', 'lider', 'carregador'],
-    emBreve: true,
-  },
-  {
-    id: 'avarias',
-    nome: 'Registro de Avarias',
-    descricao: 'Fotos e registro de produtos avariados no carregamento.',
-    icone: 'alerta',
-    link: '#',
-    perfis: ['admin', 'lider'],
-    emBreve: true,
-  },
+const OPERA = ['lider', 'carregador'];
+const GESTAO = ['admin', 'lider'];
+const ADMIN = ['admin'];
+const TODOS = ['admin', 'lider', 'carregador'];
+const QR = 'tools/carregamento/';
+const PAINEL = 'tools/carregamento/painel.html';
+const QUADRO = 'tools/expedicao/';
+const EQUIPES = 'tools/admin/';
+
+export const MENU = [
+  { grupo: 'Operação', itens: [
+    { id: 'ler', nome: 'Leitura de QR', icone: 'qr', link: QR, aba: 'ler', perfis: OPERA },
+    { id: 'minhas', nome: 'Leituras da equipe', icone: 'prancheta', link: QR, aba: 'minhas', perfis: OPERA },
+    { id: 'corrigir', nome: 'Corrigir leituras', icone: 'ferramenta', link: QR, aba: 'equipe', perfis: ['lider'] },
+  ] },
+  { grupo: 'Produtividade', itens: [
+    { id: 'prod', nome: 'Produtividade', icone: 'grafico', link: PAINEL, aba: 'prod', perfis: GESTAO },
+    { id: 'lanc', nome: 'Lançamentos', icone: 'caminhao', link: PAINEL, aba: 'lanc', perfis: GESTAO },
+    { id: 'carr', nome: 'Carregamentos', icone: 'caixa', link: PAINEL, aba: 'carr', perfis: GESTAO },
+    { id: 'leit', nome: 'Leituras', icone: 'qr', link: PAINEL, aba: 'leit', perfis: GESTAO },
+    { id: 'div', nome: 'Divergências', icone: 'alerta', link: PAINEL, aba: 'div', perfis: ADMIN },
+    { id: 'importar', nome: 'Importar 967', icone: 'upload', link: PAINEL, aba: 'importar', perfis: ADMIN },
+    { id: 'config', nome: 'Configurações', icone: 'engrenagem', link: PAINEL, aba: 'config', perfis: ADMIN },
+  ] },
+  { grupo: 'Pessoas', itens: [
+    { id: 'org', nome: 'Organograma', icone: 'organograma', link: QUADRO, aba: 'org', perfis: ADMIN },
+    { id: 'att', nome: 'Chamada', icone: 'prancheta', link: QUADRO, aba: 'att', perfis: ADMIN },
+    { id: 'hist', nome: 'Histórico de chamadas', icone: 'relogio', link: QUADRO, aba: 'hist', perfis: ADMIN },
+    { id: 'ferias', nome: 'Férias', icone: 'calendario', link: QUADRO, aba: 'ferias', perfis: ADMIN },
+    { id: 'cfg', nome: 'Colaboradores e Acessos', icone: 'usuarios', link: QUADRO, aba: 'cfg', perfis: ADMIN },
+    { id: 'equipes', nome: 'Equipes', icone: 'equipe', link: EQUIPES, aba: 'equipes', perfis: ADMIN },
+    { id: 'eq-hist', nome: 'Histórico de equipes', icone: 'relogio', link: EQUIPES, aba: 'historico', perfis: ADMIN },
+  ] },
+  { grupo: 'Em breve', itens: [
+    { id: 'inventario', nome: 'Inventário Rotativo', icone: 'caixa', perfis: TODOS, emBreve: true },
+    { id: 'checklist', nome: 'Checklist de Equipamentos', icone: 'prancheta', perfis: TODOS, emBreve: true },
+    { id: 'avarias', nome: 'Registro de Avarias', icone: 'alerta', perfis: GESTAO, emBreve: true },
+  ] },
 ];
 
-export function ferramentasDoPerfil(perfil) {
-  return FERRAMENTAS.filter((f) => f.perfis.includes(perfil));
+/** Grupos do menu só com os itens que o perfil pode usar. */
+export function menuDoPerfil(perfil) {
+  return MENU.map((g) => ({ grupo: g.grupo, itens: g.itens.filter((i) => i.perfis.includes(perfil)) }))
+    .filter((g) => g.itens.length);
 }

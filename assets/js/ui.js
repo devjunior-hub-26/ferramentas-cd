@@ -32,7 +32,16 @@ export function iniciarAbas(container, aoTrocar) {
     aoTrocar?.(id);
   };
   botoes.forEach((b) => b.addEventListener('click', () => ativar(b.dataset.aba)));
-  const inicial = botoes.find((b) => !b.hidden);
+  // O menu do sistema escolhe a seção pelo endereço interno: #aba=id
+  const pedida = () => {
+    const id = new URLSearchParams(location.hash.slice(1)).get('aba');
+    return botoes.find((b) => !b.hidden && b.dataset.aba === id);
+  };
+  window.addEventListener('hashchange', () => {
+    const b = pedida();
+    if (b) { ativar(b.dataset.aba); window.scrollTo(0, 0); }
+  });
+  const inicial = pedida() || botoes.find((b) => !b.hidden);
   if (inicial) ativar(inicial.dataset.aba);
   return ativar;
 }

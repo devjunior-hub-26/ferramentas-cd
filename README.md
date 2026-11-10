@@ -4,7 +4,7 @@ Hub de ferramentas (PWA, mobile-first) hospedado no GitHub Pages, com uma **plan
 Primeira ferramenta: **Produtividade de Carregamento**, com leitura de QR Code das cargas pela câmera do celular.
 
 ```
-/index.html                     → login + hub
+/index.html                     → login + menu lateral do sistema
 /INICIAR-TESTE.bat              → abre o site no computador para teste (dois cliques)
 /manifest.json, /sw.js          → app instalável e funcionando com sinal fraco
 /assets/css/global.css          → cores (variáveis no :root) e componentes
@@ -12,12 +12,12 @@ Primeira ferramenta: **Produtividade de Carregamento**, com leitura de QR Code d
 /assets/js/api.js               → comunicação com o servidor
 /assets/js/auth.js              → login único, proteção das páginas
 /assets/js/simulador.js         → modo de teste (servidor rodando no navegador)
-/assets/js/tools.js             → lista de ferramentas do hub
+/assets/js/tools.js             → itens do menu lateral
 /assets/js/ui.js, icones.js     → funções de tela e ícones
 /assets/icons/                  → ícones do app
 /tools/carregamento/            → leitura de QR (index.html) e painel (painel.html)
-/tools/admin/                   → usuários, equipes e histórico
-/tools/expedicao/               → organograma, chamada e férias (colaboradores na planilha, nunca no código)
+/tools/admin/                   → equipes e histórico de equipes
+/tools/expedicao/               → organograma, chamada, férias, colaboradores e acessos (dados na planilha, nunca no código)
 /tools/_modelo/                 → modelo para criar ferramentas novas
 /apps-script/Codigo.gs          → o servidor: colar no Apps Script da planilha
 /docs/NOVA-FERRAMENTA.md        → como adicionar uma ferramenta
@@ -96,7 +96,7 @@ Teste no computador com o `INICIAR-TESTE.bat`: entre com o login e a senha do pa
 ### 7. Primeiro uso
 
 1. Abra o site no computador e entre com o login de administrador.
-2. **Usuários e Equipes → Usuários → Importar colaboradores**: cole do Excel as colunas Matrícula, Nome e Função. O login de cada pessoa é a matrícula e, com a opção **Senha inicial igual à matrícula** (já vem marcada), a senha também. Sem a opção, a senha é gerada na hora e aparece uma única vez: use **Baixar lista**. Líderes que não estiverem na lista podem ser criados em **+ Novo usuário**.
+2. **Pessoas → Colaboradores e Acessos**: em cada pessoa, marque **Tem acesso à plataforma?** e defina usuário, senha e perfil.
 3. **Equipes**: crie as equipes, escolha o líder e adicione as pessoas.
 4. **Painel de Produtividade → Importar 967**: importe a planilha do Winthor.
 5. No celular de um carregador: abra o endereço no Chrome (Android) ou Safari (iPhone), entre e use **Adicionar à tela inicial** para instalar.

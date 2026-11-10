@@ -13,11 +13,8 @@
 </head>
 <body>
   <header class="topo">
-    <a class="icone-btn" id="btn-voltar" href="../../index.html" aria-label="Voltar ao início" title="Início"></a>
-    <div class="titulo">
-      <strong>Quadro da Expedição</strong>
-      <small id="t-usuario"></small>
-    </div>
+    <a class="icone-btn" id="btn-voltar" href="../../index.html" aria-label="Voltar ao início"></a>
+    <small id="t-usuario"></small>
     <div class="sync">
       <span id="sync-status" class="ponto">Conectando…</span>
       <span id="sync-pend" class="pendentes" hidden></span>
@@ -32,7 +29,6 @@
     <div class="cartao">
       <h2>Importar colaboradores</h2>
       <p>Por segurança, nomes e chapas não ficam no site publicado. Selecione o arquivo do quadro (<b>.html</b>) ou um backup (<b>.json</b>).</p>
-      <p class="suave">Basta fazer uma vez: a lista vai para a planilha do servidor e aparece em todos os aparelhos do administrador.</p>
       <button class="btn bloco" type="button" data-acao="escolherArquivo" data-icone="upload">Selecionar arquivo</button>
     </div>
   </main>
@@ -43,19 +39,24 @@
     <button data-aba="att" role="tab">Chamada</button>
     <button data-aba="hist" role="tab">Histórico</button>
     <button data-aba="ferias" role="tab">Férias</button>
-    <button data-aba="cfg" role="tab">Hierarquia</button>
+    <button data-aba="cfg" role="tab">Colaboradores e Acessos</button>
   </nav>
 
   <main class="conteudo" id="principal" hidden>
     <!-- ORGANOGRAMA -->
     <section id="aba-org" hidden>
+      <details class="filtros-fixos"><summary>Filtros</summary>
+        <div class="filtros-linha">
+          <div class="grade-filtros">
+            <div class="campo"><label for="f-org-setor">Setor</label><select id="f-org-setor"><option value="all">Todos</option><option>EXPEDIÇÃO ADEGA</option><option>EXPEDIÇÃO CAMINHÃO</option><option>CONFERENCIA</option></select></div>
+          </div>
+          <div class="btns">
+            <button class="btn secundario" data-acao="fotoOrg" data-icone="download">Foto do organograma</button>
+            <button class="btn secundario" data-acao="abrirRelatorio" data-icone="prancheta">Relatório</button>
+          </div>
+        </div>
+      </details>
       <div class="kpis" id="org-kpis"></div>
-      <div class="chips">
-        <button class="chip ativo" data-acao="filtroOrg" data-valor="all">Todos</button>
-        <button class="chip" data-acao="filtroOrg" data-valor="EXPEDIÇÃO ADEGA">Exp. Adega</button>
-        <button class="chip" data-acao="filtroOrg" data-valor="EXPEDIÇÃO CAMINHÃO">Exp. Caminhão</button>
-        <button class="chip" data-acao="filtroOrg" data-valor="CONFERENCIA">Conferência</button>
-      </div>
       <div class="legenda">
         <span><i style="background:var(--org-sup)"></i>Supervisor</span>
         <span><i style="background:var(--org-sub)"></i>Sub/Líder</span>
@@ -63,67 +64,47 @@
         <span><i style="background:var(--org-conf)"></i>Conferente</span>
         <span><i style="background:var(--org-aux)"></i>Auxiliar/Oper.</span>
       </div>
-      <div class="btns barra-acoes">
-        <button class="btn pequeno secundario" data-acao="fotoOrg" data-icone="download">Foto do organograma</button>
-        <button class="btn pequeno secundario" data-acao="abrirRelatorio" data-icone="prancheta">Relatório de funcionários</button>
-      </div>
       <div id="org-lista"></div>
       <div class="org-caixa"><div id="org-area"><svg id="org-svg" aria-hidden="true"></svg><div id="org-nos"></div></div></div>
     </section>
 
     <!-- CHAMADA -->
     <section id="aba-att" hidden>
+      <details class="filtros-fixos"><summary>Filtros e ações</summary>
+        <div class="filtros-linha">
+          <div class="grade-filtros">
+            <div class="campo"><label for="f-att-setor">Setor</label><select id="f-att-setor"><option value="all">Todos</option><option>EXPEDIÇÃO</option><option>EXPEDIÇÃO ADEGA</option><option>EXPEDIÇÃO CAMINHÃO</option><option>CONFERENCIA</option></select></div>
+          </div>
+          <div class="btns">
+            <button class="btn sucesso" data-acao="marcarTodos">Todos presentes</button>
+            <button class="btn secundario" data-acao="resetar">Resetar</button>
+            <button class="btn secundario" data-acao="abrirExportar" data-icone="download">Exportar PNG</button>
+            <button class="btn" data-acao="salvarHistorico">Salvar no histórico</button>
+          </div>
+        </div>
+      </details>
       <div class="kpis" id="att-kpis"></div>
       <div class="barra-presenca"><div class="barra"><span id="att-barra"></span></div><strong id="att-pct"></strong></div>
-      <div class="chips">
-        <button class="chip ativo" data-acao="filtroAtt" data-valor="all">Todos</button>
-        <button class="chip" data-acao="filtroAtt" data-valor="EXPEDIÇÃO">Expedição</button>
-        <button class="chip" data-acao="filtroAtt" data-valor="EXPEDIÇÃO ADEGA">Exp. Adega</button>
-        <button class="chip" data-acao="filtroAtt" data-valor="EXPEDIÇÃO CAMINHÃO">Exp. Caminhão</button>
-        <button class="chip" data-acao="filtroAtt" data-valor="CONFERENCIA">Conferência</button>
-      </div>
-      <div class="btns barra-acoes">
-        <button class="btn pequeno sucesso" data-acao="marcarTodos">Todos presentes</button>
-        <button class="btn pequeno secundario" data-acao="resetar">Resetar</button>
-        <button class="btn pequeno secundario" data-acao="abrirExportar" data-icone="download">Exportar PNG</button>
-        <button class="btn pequeno" data-acao="salvarHistorico">Salvar no histórico</button>
-      </div>
       <p class="suave"><small>Toque na pessoa para trocar: Presente, Falta, Atestado, 2º Turno, Folga, Férias e Não marcado.</small></p>
       <div id="att-lista"></div>
     </section>
 
     <!-- HISTÓRICO -->
     <section id="aba-hist" hidden>
-      <div class="linha entre titulo-aba">
-        <div>
-          <h2>Histórico de chamadas</h2>
-          <p class="suave"><small>Use "Salvar no histórico" na aba Chamada para arquivar o dia.</small></p>
+      <details class="filtros-fixos"><summary>Filtros e ações</summary>
+        <div class="filtros-linha">
+          <div class="grade-filtros">
+            <div class="campo"><label for="f-hist-periodo">Período</label><select id="f-hist-periodo"><option value="0">Todos</option><option value="7">7 dias</option><option value="30">30 dias</option><option value="90">90 dias</option><option value="x">Personalizado</option></select></div>
+            <div class="campo"><label for="hist-de">Data inicial</label><input type="date" id="hist-de"></div>
+            <div class="campo"><label for="hist-ate">Data final</label><input type="date" id="hist-ate"></div>
+            <div class="campo"><label for="f-hist-motivo">Motivo</label><select id="f-hist-motivo"><option value="all">Todos</option><option value="falta">Falta</option><option value="atestado">Atestado</option><option value="segundo_turno">2º Turno</option><option value="folga">Folga</option><option value="ferias">Férias</option></select></div>
+          </div>
+          <div class="btns">
+            <button class="btn sucesso" data-acao="exportarHistorico" data-icone="download">Exportar Excel</button>
+            <button class="btn secundario" data-acao="limparHistorico">Limpar histórico</button>
+          </div>
         </div>
-        <div class="btns">
-          <button class="btn pequeno sucesso" data-acao="exportarHistorico" data-icone="download">Exportar Excel</button>
-          <button class="btn pequeno secundario" data-acao="limparHistorico">Limpar histórico</button>
-        </div>
-      </div>
-      <div class="cartao">
-        <div class="grade-filtros">
-          <div class="campo"><label for="hist-de">Data inicial</label><input type="date" id="hist-de"></div>
-          <div class="campo"><label for="hist-ate">Data final</label><input type="date" id="hist-ate"></div>
-        </div>
-        <div class="chips mt">
-          <button class="chip" data-acao="periodo" data-valor="7">7 dias</button>
-          <button class="chip" data-acao="periodo" data-valor="30">30 dias</button>
-          <button class="chip" data-acao="periodo" data-valor="90">90 dias</button>
-          <button class="chip ativo" data-acao="periodo" data-valor="0">Todos</button>
-        </div>
-        <div class="chips sem-margem">
-          <button class="chip ativo" data-acao="motivo" data-valor="all">Todos os motivos</button>
-          <button class="chip" data-acao="motivo" data-valor="falta">Falta</button>
-          <button class="chip" data-acao="motivo" data-valor="atestado">Atestado</button>
-          <button class="chip" data-acao="motivo" data-valor="segundo_turno">2º Turno</button>
-          <button class="chip" data-acao="motivo" data-valor="folga">Folga</button>
-          <button class="chip" data-acao="motivo" data-valor="ferias">Férias</button>
-        </div>
-      </div>
+      </details>
       <div class="kpis" id="hist-kpis"></div>
       <p class="suave" id="hist-info"></p>
       <div id="hist-lista"></div>
@@ -131,17 +112,14 @@
 
     <!-- FÉRIAS -->
     <section id="aba-ferias" hidden>
-      <div class="titulo-aba">
-        <h2>Programação de férias</h2>
-        <p class="suave"><small>Toque no mês para programar. O vencimento é calculado pela data de admissão.</small></p>
-      </div>
-      <div class="chips">
-        <button class="chip ativo" data-acao="filtroFerias" data-valor="all">Todos os setores</button>
-        <button class="chip" data-acao="filtroFerias" data-valor="EXPEDIÇÃO ADEGA">Exp. Adega</button>
-        <button class="chip" data-acao="filtroFerias" data-valor="EXPEDIÇÃO CAMINHÃO">Exp. Caminhão</button>
-        <button class="chip" data-acao="filtroFerias" data-valor="CONFERENCIA">Conferência</button>
-      </div>
-      <div class="chips" id="ferias-meses"></div>
+      <details class="filtros-fixos"><summary>Filtros</summary>
+        <div class="filtros-linha">
+          <div class="grade-filtros">
+            <div class="campo"><label for="f-fer-setor">Setor</label><select id="f-fer-setor"><option value="all">Todos</option><option>EXPEDIÇÃO</option><option>EXPEDIÇÃO ADEGA</option><option>EXPEDIÇÃO CAMINHÃO</option><option>CONFERENCIA</option></select></div>
+            <div class="campo"><label for="f-fer-mes">Mês</label><select id="f-fer-mes"></select></div>
+          </div>
+        </div>
+      </details>
       <div class="legenda">
         <span><i class="quadrado" style="background:var(--cor)"></i>Férias programadas</span>
         <span><i class="quadrado" style="background:var(--erro-fundo);border:2px solid var(--erro)"></i>Mês limite</span>
@@ -150,17 +128,45 @@
       <div class="ferias-caixa" id="ferias-grade"></div>
     </section>
 
-    <!-- HIERARQUIA -->
+    <!-- COLABORADORES E ACESSOS -->
     <section id="aba-cfg" hidden>
-      <div class="cartao">
-        <h3>Dados</h3>
-        <p class="suave" id="dados-status">Dados guardados na planilha do servidor.</p>
-        <div class="btns">
-          <button class="btn pequeno secundario" data-acao="baixarBackup" data-icone="download">Baixar backup</button>
-          <button class="btn pequeno secundario" data-acao="escolherArquivo" data-icone="upload">Carregar backup</button>
+      <details class="filtros-fixos"><summary>Filtros e ações</summary>
+        <div class="filtros-linha">
+          <div class="grade-filtros">
+            <div class="campo"><label for="cfg-busca">Buscar</label><input id="cfg-busca" type="search" placeholder="Nome, chapa, função ou login"></div>
+            <div class="campo"><label for="f-cfg-setor">Setor</label><select id="f-cfg-setor"><option value="all">Todos</option><option>EXPEDIÇÃO</option><option>EXPEDIÇÃO ADEGA</option><option>EXPEDIÇÃO CAMINHÃO</option><option>CONFERENCIA</option></select></div>
+            <div class="campo"><label for="f-cfg-acesso">Acesso</label><select id="f-cfg-acesso"><option value="all">Todos</option><option value="com">Com acesso</option><option value="sem">Sem acesso</option><option value="bloq">Bloqueado</option></select></div>
+            <div class="campo"><label for="cfg-ordem">Ordenar por</label><select id="cfg-ordem"><option value="NIVEL">Nível</option><option value="Nome">Nome</option><option value="Chapa">Chapa</option><option value="funcao">Função</option><option value="Setor">Setor</option><option value="Admissao">Admissão</option></select></div>
+          </div>
+          <div class="btns"><button class="btn sucesso" data-acao="novoColaborador">Novo colaborador</button></div>
         </div>
+      </details>
+      <div class="kpis" id="cfg-kpis"></div>
+      <div class="tabela-wrap"><table class="tabela titulo-2">
+        <thead><tr id="cfg-cabeca">
+          <th class="ordena" data-acao="ordenar" data-valor="Chapa">Chapa</th>
+          <th class="ordena" data-acao="ordenar" data-valor="Nome">Nome</th>
+          <th class="ordena" data-acao="ordenar" data-valor="funcao">Função</th>
+          <th class="ordena" data-acao="ordenar" data-valor="Setor">Setor</th>
+          <th class="ordena" data-acao="ordenar" data-valor="NIVEL">Nível</th>
+          <th class="ordena" data-acao="ordenar" data-valor="Admissao">Admissão</th>
+          <th>Férias prog.</th>
+          <th>Acesso</th>
+          <th>Ações</th>
+        </tr></thead>
+        <tbody id="cfg-corpo"></tbody>
+      </table></div>
+
+      <div id="contas-caixa" class="mt" hidden>
+        <h2>Contas sem colaborador</h2>
+        <p class="suave"><small>Contas de acesso que não estão ligadas a uma pessoa da lista. Vincule para manter tudo unificado.</small></p>
+        <div class="tabela-wrap"><table class="tabela">
+          <thead><tr><th>Nome</th><th>Login</th><th>Perfil</th><th>Situação</th><th>Ações</th></tr></thead>
+          <tbody id="contas-corpo"></tbody>
+        </table></div>
       </div>
-      <details class="cartao">
+
+      <details class="cartao mt">
         <summary><b>Como usar o nível hierárquico</b></summary>
         <p>O campo <b>Nível</b> define a árvore do organograma:</p>
         <ul class="niveis">
@@ -172,30 +178,14 @@
         </ul>
         <p class="suave">Um nó é filho do nó de menor profundidade mais próximo acima dele na ordenação.</p>
       </details>
-      <div class="linha entre titulo-aba">
-        <h2>Configurar hierarquia</h2>
-        <button class="btn pequeno sucesso" data-acao="novoColaborador">Novo colaborador</button>
+      <div class="cartao">
+        <h3>Backup</h3>
+        <p class="suave" id="dados-status">Dados guardados na planilha do servidor.</p>
+        <div class="btns">
+          <button class="btn pequeno secundario" data-acao="baixarBackup" data-icone="download">Baixar backup</button>
+          <button class="btn pequeno secundario" data-acao="escolherArquivo" data-icone="upload">Carregar backup</button>
+        </div>
       </div>
-      <div class="campo"><label for="cfg-busca">Buscar colaborador</label><input id="cfg-busca" type="search" placeholder="Nome, chapa, função ou setor"></div>
-      <div class="campo so-celular"><label for="cfg-ordem">Ordenar por</label>
-        <select id="cfg-ordem">
-          <option value="NIVEL">Nível</option><option value="Nome">Nome</option><option value="Chapa">Chapa</option>
-          <option value="funcao">Função</option><option value="Setor">Setor</option><option value="Admissao">Admissão</option>
-        </select>
-      </div>
-      <div class="tabela-wrap"><table class="tabela titulo-2">
-        <thead><tr id="cfg-cabeca">
-          <th class="ordena" data-acao="ordenar" data-valor="Chapa">Chapa</th>
-          <th class="ordena" data-acao="ordenar" data-valor="Nome">Nome</th>
-          <th class="ordena" data-acao="ordenar" data-valor="funcao">Função</th>
-          <th class="ordena" data-acao="ordenar" data-valor="Setor">Setor</th>
-          <th class="ordena" data-acao="ordenar" data-valor="NIVEL">Nível</th>
-          <th class="ordena" data-acao="ordenar" data-valor="Admissao">Admissão</th>
-          <th>Férias prog.</th>
-          <th>Ações</th>
-        </tr></thead>
-        <tbody id="cfg-corpo"></tbody>
-      </table></div>
     </section>
   </main>
 
@@ -253,7 +243,33 @@
           </div>
           <div class="campo"><label for="f-admissao">Data de admissão</label><input id="f-admissao" type="date"></div>
           <div class="campo"><label for="f-ferias">Mês de férias</label><select id="f-ferias"></select></div>
+          <label class="check inteiro"><input type="checkbox" id="f-acesso"> Tem acesso à plataforma?</label>
+          <div class="inteiro grade-filtros" id="bloco-acesso" hidden>
+            <div class="campo"><label for="f-login">Usuário *</label><input id="f-login" autocapitalize="none" autocorrect="off" spellcheck="false" pattern="[a-zA-Z0-9._\-]{3,40}"></div>
+            <div class="campo"><label for="f-senha" id="f-senha-rotulo">Senha *</label><input id="f-senha" type="text" minlength="6" autocomplete="new-password"></div>
+            <div class="campo"><label for="f-perfil">Perfil *</label><select id="f-perfil"><option value="carregador">Carregador</option><option value="lider">Líder</option><option value="admin">Administrador</option></select></div>
+            <span class="campo inteiro"><span class="ajuda" id="f-senha-ajuda">Mínimo 6 caracteres. Informe à pessoa.</span></span>
+          </div>
         </div>
+      </div>
+      <div class="modal-rodape">
+        <button class="btn pequeno secundario" type="button" data-fechar>Cancelar</button>
+        <button class="btn pequeno" type="submit">Salvar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Conta sem colaborador -->
+  <dialog class="modal" id="dlg-conta">
+    <form id="form-conta">
+      <div class="modal-topo">Conta de acesso</div>
+      <div class="modal-corpo">
+        <div class="campo"><label for="c-nome">Nome</label><input id="c-nome" required maxlength="100"></div>
+        <div class="campo"><label for="c-login">Usuário</label><input id="c-login" readonly></div>
+        <div class="campo"><label for="c-senha">Nova senha (opcional)</label><input id="c-senha" type="text" minlength="6" autocomplete="new-password"></div>
+        <div class="campo"><label for="c-perfil">Perfil</label><select id="c-perfil"><option value="carregador">Carregador</option><option value="lider">Líder</option><option value="admin">Administrador</option></select></div>
+        <label class="check"><input type="checkbox" id="c-ativo"> Conta ativa</label>
+        <div class="campo" id="c-vinculo-caixa"><label for="c-vinculo">Vincular ao colaborador</label><select id="c-vinculo"></select></div>
       </div>
       <div class="modal-rodape">
         <button class="btn pequeno secundario" type="button" data-fechar>Cancelar</button>
