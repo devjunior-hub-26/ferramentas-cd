@@ -9,16 +9,15 @@
 //  link     caminho da página a partir da raiz do site
 //  aba      seção da página que o item abre (data-aba)
 //  perfis   perfis que veem o item: 'admin', 'lider', 'carregador'
-//  emBreve  true = item aparece desabilitado
 // =========================================================
 const OPERA = ['lider', 'carregador'];
 const GESTAO = ['admin', 'lider'];
 const ADMIN = ['admin'];
-const TODOS = ['admin', 'lider', 'carregador'];
 const QR = 'tools/carregamento/';
 const PAINEL = 'tools/carregamento/painel.html';
 const QUADRO = 'tools/expedicao/';
 const EQUIPES = 'tools/admin/';
+const CONF = 'tools/conferencia/';
 
 export const MENU = [
   { grupo: 'Operação', itens: [
@@ -44,10 +43,17 @@ export const MENU = [
     { id: 'equipes', nome: 'Equipes', icone: 'equipe', link: EQUIPES, aba: 'equipes', perfis: ADMIN },
     { id: 'eq-hist', nome: 'Histórico de equipes', icone: 'relogio', link: EQUIPES, aba: 'historico', perfis: ADMIN },
   ] },
-  { grupo: 'Em breve', itens: [
-    { id: 'inventario', nome: 'Inventário Rotativo', icone: 'caixa', perfis: TODOS, emBreve: true },
-    { id: 'checklist', nome: 'Checklist de Equipamentos', icone: 'prancheta', perfis: TODOS, emBreve: true },
-    { id: 'avarias', nome: 'Registro de Avarias', icone: 'alerta', perfis: GESTAO, emBreve: true },
+  { grupo: 'Conferência', itens: [
+    { id: 'cf-painel', nome: 'Painel de pontuação', icone: 'grafico', link: CONF, aba: 'painel', perfis: ADMIN },
+    { id: 'cf-conferentes', nome: 'Conferentes', icone: 'usuarios', link: CONF, aba: 'conferentes', perfis: ADMIN },
+    { id: 'cf-metas', nome: 'Metas', icone: 'alvo', link: CONF, aba: 'metas', perfis: ADMIN },
+    { id: 'cf-acomp', nome: 'Acompanhamento', icone: 'tendencia', link: CONF, aba: 'acomp', perfis: ADMIN },
+    { id: 'cf-qualidade', nome: 'Qualidade', icone: 'escudo', link: CONF, aba: 'qualidade', perfis: ADMIN },
+    { id: 'cf-lanc', nome: 'Erros e transportadora', icone: 'alerta', link: CONF, aba: 'lanc', perfis: ADMIN },
+    { id: 'cf-tempos', nome: 'Tempos', icone: 'relogio', link: CONF, aba: 'tempos', perfis: ADMIN },
+    { id: 'cf-historico', nome: 'Histórico de pontuação', icone: 'calendario', link: CONF, aba: 'historico', perfis: ADMIN },
+    { id: 'cf-feedback', nome: 'Feedback', icone: 'mensagem', link: CONF, aba: 'feedback', perfis: ADMIN },
+    { id: 'cf-config', nome: 'Configuração da conferência', icone: 'engrenagem', link: CONF, aba: 'config', perfis: ADMIN },
   ] },
 ];
 

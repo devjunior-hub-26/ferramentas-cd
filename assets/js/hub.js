@@ -32,7 +32,7 @@ let itemAtual = null;
 $('#logo').innerHTML = icone('caminhao');
 $('#logo-menu').innerHTML = icone('caminhao');
 $('#btn-sair').innerHTML = icone('sair');
-$('#btn-menu').innerHTML = icone('menu');
+$('#btn-menu').innerHTML = icone('caminhao');
 $('#btn-sair').addEventListener('click', sair);
 
 // ---------- Menu retrátil ----------
@@ -55,9 +55,8 @@ function montarMenu(perfil) {
   $('#app-perfil').textContent = PERFIS[perfil.perfil] || perfil.perfil;
   const grupos = menuDoPerfil(perfil.perfil);
   itens = grupos.flatMap((g) => g.itens.map((i) => ({ ...i, grupo: g.grupo })));
-  $('#menu-itens').innerHTML = grupos.map((g) => `<div class="menu-grupo">${esc(g.grupo)}</div>${g.itens.map((i) => (i.emBreve
-    ? `<div class="menu-item em-breve" title="${esc(i.nome)} (em breve)">${icone(i.icone)}<span>${esc(i.nome)}</span></div>`
-    : `<button class="menu-item" data-item="${esc(i.id)}" title="${esc(i.nome)}">${icone(i.icone)}<span>${esc(i.nome)}</span></button>`)).join('')}`).join('')
+  $('#menu-itens').innerHTML = grupos.map((g) => `<div class="menu-grupo">${esc(g.grupo)}</div>${g.itens.map((i) => (
+    `<button class="menu-item" data-item="${esc(i.id)}" title="${esc(i.nome)}">${icone(i.icone)}<span>${esc(i.nome)}</span></button>`)).join('')}`).join('')
     + '<div class="menu-pilula" id="menu-pilula" aria-hidden="true"></div>';
 }
 
@@ -73,6 +72,9 @@ function moverPilula() {
   }
 }
 window.addEventListener('resize', moverPilula);
+// Abrir ou recolher o menu muda a posição dos itens: o marcador acompanha
+new MutationObserver(() => requestAnimationFrame(moverPilula)).observe($('#tela-app'), { attributes: true, attributeFilter: ['class'] });
+$('.menu').addEventListener('transitionend', moverPilula);
 
 // O conteúdo das ferramentas começa abaixo da barra translúcida
 function passarAlturaBarra() {
@@ -112,11 +114,19 @@ function abrirItem(item, { historico = true } = {}) {
   document.querySelectorAll('.menu-item[data-item]').forEach((b) => b.classList.toggle('ativo', b.dataset.item === item.id));
   moverPilula();
   $('#tela-app').classList.remove('aberto');
+  // Item escolhido sempre visível no menu (também na faixa de ícones do celular)
+  requestAnimationFrame(() => {
+    const lista = $('#menu-itens');
+    const b = document.querySelector('.menu-item.ativo');
+    if (b && (b.offsetTop < lista.scrollTop || b.offsetTop + b.offsetHeight > lista.scrollTop + lista.clientHeight)) {
+      lista.scrollTop = b.offsetTop - lista.clientHeight / 2 + b.offsetHeight / 2;
+    }
+  });
   sessionStorage.setItem(CHAVE_ABERTA, item.id);
   if (historico) history.pushState({ item: item.id }, '');
 }
 
-const itemInicial = () => itens.find((i) => i.id === sessionStorage.getItem(CHAVE_ABERTA) && !i.emBreve) || itens.find((i) => !i.emBreve);
+const itemInicial = () => itens.find((i) => i.id === sessionStorage.getItem(CHAVE_ABERTA)) || itens[0];
 
 window.addEventListener('popstate', (ev) => {
   const item = itens.find((i) => i.id === ev.state?.item);
@@ -128,7 +138,7 @@ window.addEventListener('message', (ev) => {
   if (ev.data?.tipo === 'fechar-ferramenta') {
     if (!tokenSalvo()) { location.reload(); return; }
     sessionStorage.removeItem(CHAVE_ABERTA);
-    abrirItem(itens.find((i) => !i.emBreve), { historico: false });
+    abrirItem(itens[0], { historico: false });
   } else if (ev.data?.tipo === 'sync') {
     $('#sync-barra').hidden = false;
     $('#sync-barra').classList.toggle('off', !!ev.data.off);

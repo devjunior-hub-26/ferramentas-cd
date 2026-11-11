@@ -23,7 +23,7 @@ const LOGIN_INICIAL_ADMIN = 'TROQUE-ESTE-LOGIN';
 const SENHA_INICIAL_ADMIN = 'TROQUE-ESTA-SENHA';
 
 // Mostrada no rodapé do app. Aumente sempre que este arquivo mudar.
-const VERSAO_SERVIDOR = 'v3.0.0';
+const VERSAO_SERVIDOR = 'v3.1.0';
 
 const DIAS_SESSAO = 60;         // por quanto tempo o celular fica logado
 const MAX_TENTATIVAS_LOGIN = 5;  // erros seguidos antes de bloquear por 5 minutos
@@ -44,6 +44,9 @@ const TABELAS = {
   // Quadro da Expedição: status = chamada atual de cada colaborador
   ExpColaboradores: ['chapa', 'nome', 'funcao', 'setor', 'nivel', 'admissao', 'ferias_mes', 'status', 'usuario_id'],
   ExpHistorico: ['data', 'ts', 'obs', 'foto'],
+  // Painel de conferência: cada parte do painel guardada como texto JSON,
+  // dividida em pedaços (uma célula aceita no máximo 50 mil caracteres)
+  ConfDados: ['parte', 'ordem', 'json', 'alterado_em', 'alterado_por'],
 };
 
 const PERFIS = ['admin', 'lider', 'carregador'];
@@ -129,6 +132,10 @@ const ACOES = {
   expedicaoVincularConta: { perfis: ['admin'], fn: acaoExpedicaoVincularConta },
   expedicaoSalvarDia: { perfis: ['admin'], fn: acaoExpedicaoSalvarDia },
   expedicaoLimparHistorico: { perfis: ['admin'], fn: acaoExpedicaoLimparHistorico },
+
+  // Painel de conferência
+  conferenciaDados: { perfis: ['admin'], fn: acaoConferenciaDados },
+  conferenciaSalvar: { perfis: ['admin'], fn: acaoConferenciaSalvar },
 };
 
 // =====================================================================
@@ -1253,6 +1260,49 @@ function acaoExpedicaoSalvarDia(d) {
 
 function acaoExpedicaoLimparHistorico() {
   return comTrava(() => { substituirTabela('ExpHistorico', []); return true; });
+}
+
+// =====================================================================
+// PAINEL DE CONFERÊNCIA
+// =====================================================================
+
+const CONF_PARTES = ['conferentes', 'config', 'qualidade', 'historico', 'tempos'];
+const CONF_PEDACO = 40000;
+
+/** Devolve cada parte do painel como texto JSON (o site interpreta). */
+function acaoConferenciaDados() {
+  const pedacos = {};
+  ler('ConfDados').forEach((r) => {
+    if (CONF_PARTES.indexOf(r.parte) >= 0) (pedacos[r.parte] = pedacos[r.parte] || []).push(r);
+  });
+  const partes = {};
+  Object.keys(pedacos).forEach((p) => {
+    partes[p] = pedacos[p].sort((a, b) => Number(a.ordem) - Number(b.ordem)).map((r) => r.json).join('');
+  });
+  return { partes: partes };
+}
+
+/** Grava só as partes enviadas; as demais ficam como estão. */
+function acaoConferenciaSalvar(d, u) {
+  const novas = d.partes || {};
+  const nomes = Object.keys(novas).filter((p) => CONF_PARTES.indexOf(p) >= 0);
+  if (!nomes.length) throw new ErroApp('DADOS_INVALIDOS', 'Nada para salvar.');
+  nomes.forEach((p) => {
+    if (typeof novas[p] !== 'string') throw new ErroApp('DADOS_INVALIDOS', 'Dados do painel inválidos.');
+    try { JSON.parse(novas[p]); } catch (e) { throw new ErroApp('DADOS_INVALIDOS', 'Dados do painel inválidos.'); }
+  });
+  return comTrava(() => {
+    const agora = agoraISO();
+    const linhas = ler('ConfDados').filter((r) => nomes.indexOf(r.parte) < 0);
+    nomes.forEach((p) => {
+      const t = novas[p];
+      for (let i = 0, n = 0; i < t.length || n === 0; i += CONF_PEDACO, n++) {
+        linhas.push({ parte: p, ordem: String(n), json: t.slice(i, i + CONF_PEDACO), alterado_em: agora, alterado_por: u.nome });
+      }
+    });
+    substituirTabela('ConfDados', linhas);
+    return { salvo_em: agora };
+  });
 }
 
 // =====================================================================

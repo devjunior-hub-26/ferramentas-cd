@@ -28,7 +28,7 @@ Abra `assets/js/tools.js` e inclua um item no grupo certo do `MENU`:
 },
 ```
 
-Se já existia um item "Em breve" com o mesmo `id`, basta apagar a linha `emBreve: true`. Filtros da tela vão em `<details class="filtros-fixos">`, que fica fixo no topo. Tabelas dentro de `.tabela-wrap` viram cartões sozinhas quando não cabem.
+Filtros da tela vão em `<details class="filtros-fixos">`, que fica fixo no topo. Tabelas dentro de `.tabela-wrap` viram cartões sozinhas quando não cabem.
 
 > O campo `perfis` só esconde o item do menu. A proteção de verdade é o `exigirLogin([...])` da página e, principalmente, a checagem de perfil de cada ação no servidor (`apps-script/Codigo.gs`).
 

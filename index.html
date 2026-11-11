@@ -22,10 +22,10 @@
 
     /* ---------- Sistema ---------- */
     .app { position: fixed; inset: 0; display: flex; }
-    /* Painel sólido: a transparência fica só nos itens, na barra e nos filtros */
+    /* Painel azul-marinho sólido: o vidro fica só no marcador da página atual */
     .menu {
       flex: none; width: 256px; display: flex; flex-direction: column; color: rgba(255, 255, 255, .94); z-index: 40; overflow: hidden;
-      background: radial-gradient(90% 34% at 20% 62%, #27509F 0%, transparent 72%), radial-gradient(80% 26% at 90% 18%, #234A96 0%, transparent 72%), linear-gradient(180deg, #14336F, #0A1A40);
+      background: #0F2558;
       transition: width .34s var(--mola), transform .4s var(--mola);
     }
     .menu-marca { display: flex; align-items: center; gap: 10px; min-height: 56px; padding: 0 14px; border-bottom: 1px solid rgba(255, 255, 255, .1); white-space: nowrap; overflow: hidden; }
@@ -37,22 +37,28 @@
     .menu-grupo { margin: 14px 8px 4px; font-size: .68rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: rgba(255, 255, 255, .68); white-space: nowrap; }
     .menu-item { position: relative; z-index: 1; display: flex; align-items: center; gap: 11px; width: 100%; min-height: var(--toque); padding: 0 10px; border: 0; border-radius: 10px; background: transparent; color: inherit; font: inherit; font-size: .9rem; font-weight: 500; text-align: left; cursor: pointer; white-space: nowrap; overflow: hidden; transition: color .2s, background .15s, transform .3s var(--mola); touch-action: manipulation; }
     .menu-item svg { flex: none; width: 19px; height: 19px; }
-    .menu-item:hover:not(.ativo):not(.em-breve) { background: linear-gradient(135deg, rgba(255, 255, 255, .16), rgba(255, 255, 255, .05)); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .2), inset 0 0 0 .5px rgba(255, 255, 255, .14); }
-    .menu-item:active:not(.em-breve) { transform: scale(.97); transition-duration: .2s, .15s, .08s; }
+    .menu-item:hover:not(.ativo) { background: rgba(255, 255, 255, .07); }
+    .menu-item:active { transform: scale(.97); transition-duration: .2s, .15s, .08s; }
     .menu-item.ativo { color: var(--branco); font-weight: 600; text-shadow: 0 1px 2px rgba(4, 10, 30, .35); }
-    .menu-item.em-breve { opacity: .5; cursor: not-allowed; background: transparent; }
     /* Seleção: peça de vidro polido que desliza entre os itens */
     .menu-pilula {
       position: absolute; top: 0; left: 8px; right: 8px; height: 40px; opacity: 0; pointer-events: none; border-radius: 12px; overflow: hidden;
-      background: linear-gradient(135deg, rgba(255, 255, 255, .34), rgba(255, 255, 255, .12) 55%, rgba(255, 255, 255, .2));
-      -webkit-backdrop-filter: blur(12px) saturate(190%) brightness(1.08);
-      backdrop-filter: blur(12px) saturate(190%) brightness(1.08);
-      border: 1px solid rgba(255, 255, 255, .34);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55), inset 0 -1px 0 rgba(255, 255, 255, .14), 0 6px 16px rgba(4, 10, 30, .28);
+      /* Vidro transparente: quase sem preenchimento, a forma vem da luz nas bordas */
+      background: linear-gradient(160deg, rgba(255, 255, 255, .13), rgba(255, 255, 255, .03) 45%, rgba(255, 255, 255, .07));
+      -webkit-backdrop-filter: blur(6px);
+      backdrop-filter: blur(6px);
+      border: 1px solid rgba(255, 255, 255, .22);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, .55),        /* luz na borda de cima */
+        inset 0 -1px 0 rgba(255, 255, 255, .10),       /* reflexo embaixo */
+        inset 1px 0 0 rgba(255, 255, 255, .12), inset -1px 0 0 rgba(255, 255, 255, .06),
+        inset 0 0 12px rgba(255, 255, 255, .05),       /* espessura do vidro */
+        0 4px 14px rgba(2, 8, 26, .28);
       transition: transform .42s var(--mola), height .2s ease, opacity .2s ease;
     }
-    /* Reflexo de luz na parte de cima do vidro */
-    .menu-pilula::before { content: ""; position: absolute; inset: 0 0 52% 0; background: linear-gradient(180deg, rgba(255, 255, 255, .24), rgba(255, 255, 255, 0)); }
+    /* Reflexo de luz na parte de cima e um brilho diagonal, como em vidro polido */
+    .menu-pilula::before { content: ""; position: absolute; inset: 0 0 55% 0; border-radius: 12px 12px 40% 40% / 12px 12px 8px 8px; background: linear-gradient(180deg, rgba(255, 255, 255, .16), rgba(255, 255, 255, 0)); }
+    .menu-pilula::after { content: ""; position: absolute; top: -40%; bottom: -40%; left: 18%; width: 22%; transform: skewX(-24deg); background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, .07), rgba(255, 255, 255, 0)); }
     .menu-usuario { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-top: 1px solid rgba(255, 255, 255, .1); }
     .menu-usuario .dados { flex: 1; min-width: 0; }
     .menu-usuario strong, .menu-usuario small { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -61,6 +67,11 @@
     .btn-icone { flex: none; width: var(--toque); height: var(--toque); display: grid; place-items: center; border: 0; border-radius: 7px; background: transparent; color: inherit; cursor: pointer; }
     .btn-icone:hover { background: rgba(127, 140, 170, .18); }
     .btn-icone svg { width: 21px; height: 21px; }
+    /* Botão do menu na barra: o caminhãozinho da marca */
+    #btn-menu { width: 38px; height: 38px; margin-left: 2px; border-radius: 10px; background: var(--cor); color: var(--branco); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .18), 0 2px 6px rgba(16, 42, 99, .25); transition: transform .3s var(--mola), background .15s; }
+    #btn-menu:hover { background: var(--cor-forte); }
+    #btn-menu:active { transform: scale(.94); transition-duration: .08s; }
+    #btn-menu svg { width: 22px; height: 22px; }
 
     .principal { position: relative; flex: 1; min-width: 0; overflow: hidden; background: var(--fundo); }
     /* Barra translúcida: o conteúdo rola por baixo dela */
@@ -80,7 +91,7 @@
     .sync-barra::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #22B45E; }
     .sync-barra.off::before { background: var(--erro); }
     .sync-pend { background: var(--alerta-forte); color: var(--texto); border-radius: 5px; padding: 0 6px; font-weight: 700; }
-    .area { position: absolute; inset: 0; background: var(--fundo); }
+    .area { position: absolute; inset: 0; background: var(--fundo-luz), var(--fundo); }
     #quadro-ferramenta { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: var(--fundo); }
     .menu-fundo { display: none; }
 
@@ -93,10 +104,19 @@
       .app.recolhido .menu-usuario { justify-content: center; padding: 10px 0; }
       .app.recolhido .menu-marca { justify-content: center; padding: 0; }
     }
-    /* Celular e tablet: menu por cima da tela */
+    /* Celular e tablet: os ícones ficam sempre à mostra numa faixa estreita;
+       o caminhãozinho abre o menu completo por cima da tela */
     @media (max-width: 900px) {
-      .menu { position: fixed; top: 0; bottom: 0; left: 0; width: min(290px, 84vw); transform: translateX(-100%); }
-      .app.aberto .menu { transform: none; box-shadow: 0 0 40px rgba(4, 10, 30, .4); }
+      .menu { position: fixed; top: 0; bottom: 0; left: 0; width: 56px; }
+      .principal { margin-left: 56px; }
+      .app:not(.aberto) .menu-marca strong, .app:not(.aberto) .menu-item span, .app:not(.aberto) .menu-usuario .dados { display: none; }
+      .app:not(.aberto) .menu-grupo { visibility: hidden; height: 1px; margin: 6px 0; }
+      .app:not(.aberto) .menu-item { justify-content: center; padding: 0; }
+      .app:not(.aberto) .menu-usuario { justify-content: center; padding: 10px 0; }
+      .app:not(.aberto) .menu-marca { justify-content: center; padding: 0; }
+      .app:not(.aberto) .menu-itens { padding: 6px 6px 12px; }
+      .app:not(.aberto) .menu-pilula { left: 6px; right: 6px; }
+      .app.aberto .menu { width: min(290px, 84vw); box-shadow: 0 0 40px rgba(4, 10, 30, .4); }
       .app.aberto .menu-fundo { display: block; position: fixed; inset: 0; z-index: 30; background: rgba(16, 24, 40, .45); }
     }
     @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
