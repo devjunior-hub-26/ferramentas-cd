@@ -2,6 +2,15 @@
 
 O login, as cores, o cabeçalho e o modo instalável já estão prontos. Uma ferramenta nova é só **uma pasta + um item na lista**.
 
+## Regra: um sistema só
+
+Todas as ferramentas fazem parte do mesmo software. Antes de criar algo novo:
+
+- **Pessoas:** use o cadastro de **Colaboradores e Acessos** (aba `ExpColaboradores` da planilha, ligada pela chapa). Nenhuma ferramenta tem cadastro de pessoas próprio; filtre por setor ou função (ex.: a Conferência usa o setor `CONFERENCIA`).
+- **Arquivos:** toda importação de relatório fica na tela **Importações** (`tools/importacoes/`), um campo por relatório, com prévia antes de gravar. A ferramenta só mostra os dados.
+- **Visual:** use `global.css` (cartões, tabelas, filtros fixos em vidro) e o menu do sistema; nada de menu ou login próprio.
+- **Dados:** tudo na planilha, pelas ações do `Codigo.gs`; nada só no navegador.
+
 ## 1. Crie a pasta
 
 Copie `tools/_modelo/` para `tools/<nome>/` (ex.: `tools/inventario/`). O `index.html` do modelo já:

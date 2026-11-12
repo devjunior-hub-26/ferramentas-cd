@@ -29,7 +29,9 @@
       transition: width .34s var(--mola), transform .4s var(--mola);
     }
     .menu-marca { display: flex; align-items: center; gap: 10px; min-height: 56px; padding: 0 14px; border-bottom: 1px solid rgba(255, 255, 255, .1); white-space: nowrap; overflow: hidden; }
-    .menu-marca .logo-p { flex: none; width: 32px; height: 32px; border-radius: 7px; background: var(--branco); color: var(--cor); display: grid; place-items: center; }
+    /* O caminhãozinho é o único botão do menu: no menu ele recolhe, na barra (celular) ele abre */
+    .menu-marca .logo-p { flex: none; width: 32px; height: 32px; border: 0; padding: 0; border-radius: 7px; background: var(--branco); color: var(--cor); display: grid; place-items: center; cursor: pointer; transition: transform .3s var(--mola); }
+    .menu-marca .logo-p:active { transform: scale(.92); transition-duration: .08s; }
     .menu-marca .logo-p svg { width: 20px; height: 20px; }
     .menu-marca strong { color: var(--branco); font-size: .98rem; font-weight: 650; }
     .menu-itens { position: relative; flex: 1; overflow-y: auto; overflow-x: hidden; padding: 6px 8px 12px; scrollbar-width: none; }
@@ -104,19 +106,12 @@
       .app.recolhido .menu-usuario { justify-content: center; padding: 10px 0; }
       .app.recolhido .menu-marca { justify-content: center; padding: 0; }
     }
-    /* Celular e tablet: os ícones ficam sempre à mostra numa faixa estreita;
-       o caminhãozinho abre o menu completo por cima da tela */
+    /* Computador: o caminhãozinho fica no menu, então a barra não repete */
+    @media (min-width: 901px) { #btn-menu { display: none; } .barra { padding-left: 14px; } }
+    /* Celular e tablet: menu totalmente oculto; o caminhãozinho da barra abre por cima da tela */
     @media (max-width: 900px) {
-      .menu { position: fixed; top: 0; bottom: 0; left: 0; width: 56px; }
-      .principal { margin-left: 56px; }
-      .app:not(.aberto) .menu-marca strong, .app:not(.aberto) .menu-item span, .app:not(.aberto) .menu-usuario .dados { display: none; }
-      .app:not(.aberto) .menu-grupo { visibility: hidden; height: 1px; margin: 6px 0; }
-      .app:not(.aberto) .menu-item { justify-content: center; padding: 0; }
-      .app:not(.aberto) .menu-usuario { justify-content: center; padding: 10px 0; }
-      .app:not(.aberto) .menu-marca { justify-content: center; padding: 0; }
-      .app:not(.aberto) .menu-itens { padding: 6px 6px 12px; }
-      .app:not(.aberto) .menu-pilula { left: 6px; right: 6px; }
-      .app.aberto .menu { width: min(290px, 84vw); box-shadow: 0 0 40px rgba(4, 10, 30, .4); }
+      .menu { position: fixed; top: 0; bottom: 0; left: 0; width: min(290px, 84vw); transform: translateX(-100%); }
+      .app.aberto .menu { transform: none; box-shadow: 0 0 40px rgba(4, 10, 30, .4); }
       .app.aberto .menu-fundo { display: block; position: fixed; inset: 0; z-index: 30; background: rgba(16, 24, 40, .45); }
     }
     @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
@@ -153,7 +148,7 @@
   <!-- SISTEMA -->
   <section id="tela-app" class="app" hidden>
     <aside class="menu" aria-label="Menu principal">
-      <div class="menu-marca"><span class="logo-p" id="logo-menu"></span><strong>Ferramentas do CD</strong></div>
+      <div class="menu-marca"><button type="button" class="logo-p" id="logo-menu" title="Menu" aria-label="Recolher o menu"></button><strong>Ferramentas do CD</strong></div>
       <nav class="menu-itens" id="menu-itens"></nav>
       <div class="menu-usuario">
         <div class="dados"><strong id="app-nome"></strong><small id="app-perfil"></small></div>

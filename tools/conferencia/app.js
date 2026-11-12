@@ -74,7 +74,7 @@ window.addEventListener('beforeunload', (ev) => {
 
 try {
   const r = await api('conferenciaDados', {}, { tempo: 60000 });
-  const dados = {};
+  const dados = { equipe: r.equipe || [] };
   PARTES.forEach((p) => {
     const t = r.partes?.[p];
     if (t === undefined) return;

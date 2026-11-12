@@ -3,7 +3,6 @@
 import { api, exigirLogin, mensagemErro, PERFIS } from '../../assets/js/auth.js';
 import { $, $$, esc, toast, iniciarAbas, dataHora, numero, duracao, hojeISO, inicioDoDia, inicioDoDiaSeguinte } from '../../assets/js/ui.js';
 import { icone } from '../../assets/js/icones.js';
-import { iniciarImportacao } from './importar967.js';
 
 const perfil = await exigirLogin(['admin', 'lider']);
 const ehAdmin = perfil.perfil === 'admin';
@@ -316,7 +315,6 @@ iniciarAbas($('#abas'), (id) => {
 });
 await carregarOpcoesFiltro().catch((e) => toast(mensagemErro(e), 'erro'));
 if (ehAdmin) {
-  iniciarImportacao(perfil);
   carregarConfig().catch((e) => toast(mensagemErro(e), 'erro'));
 }
 $('#filtros').requestSubmit();

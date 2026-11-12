@@ -38,16 +38,28 @@ $('#btn-sair').addEventListener('click', sair);
 // ---------- Menu retrátil ----------
 try { $('#tela-app').classList.toggle('recolhido', localStorage.getItem(CHAVE_RECOLHIDO) === '1'); } catch { /* sem storage */ }
 
-$('#btn-menu').addEventListener('click', () => {
+// Um só caminhãozinho: na barra (celular) abre; no menu recolhe ou expande
+function alternarMenu() {
   const app = $('#tela-app');
   if (celular.matches) {
     app.classList.toggle('aberto');
-    document.querySelector('.menu-item.ativo')?.scrollIntoView({ block: 'nearest' });
+    requestAnimationFrame(mostrarAtivoNoMenu);
     return;
   }
   const recolhido = app.classList.toggle('recolhido');
   try { localStorage.setItem(CHAVE_RECOLHIDO, recolhido ? '1' : '0'); } catch { /* sem storage */ }
-});
+}
+$('#btn-menu').addEventListener('click', alternarMenu);
+$('#logo-menu').addEventListener('click', alternarMenu);
+
+// Rola a lista do menu até o item da tela aberta, se ele estiver fora de vista
+function mostrarAtivoNoMenu() {
+  const lista = $('#menu-itens');
+  const b = document.querySelector('.menu-item.ativo');
+  if (b && (b.offsetTop < lista.scrollTop || b.offsetTop + b.offsetHeight > lista.scrollTop + lista.clientHeight)) {
+    lista.scrollTop = b.offsetTop - lista.clientHeight / 2 + b.offsetHeight / 2;
+  }
+}
 $('#menu-fundo').addEventListener('click', () => $('#tela-app').classList.remove('aberto'));
 
 function montarMenu(perfil) {
@@ -114,14 +126,7 @@ function abrirItem(item, { historico = true } = {}) {
   document.querySelectorAll('.menu-item[data-item]').forEach((b) => b.classList.toggle('ativo', b.dataset.item === item.id));
   moverPilula();
   $('#tela-app').classList.remove('aberto');
-  // Item escolhido sempre visível no menu (também na faixa de ícones do celular)
-  requestAnimationFrame(() => {
-    const lista = $('#menu-itens');
-    const b = document.querySelector('.menu-item.ativo');
-    if (b && (b.offsetTop < lista.scrollTop || b.offsetTop + b.offsetHeight > lista.scrollTop + lista.clientHeight)) {
-      lista.scrollTop = b.offsetTop - lista.clientHeight / 2 + b.offsetHeight / 2;
-    }
-  });
+  requestAnimationFrame(mostrarAtivoNoMenu);
   sessionStorage.setItem(CHAVE_ABERTA, item.id);
   if (historico) history.pushState({ item: item.id }, '');
 }

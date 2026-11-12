@@ -18,6 +18,7 @@ const PAINEL = 'tools/carregamento/painel.html';
 const QUADRO = 'tools/expedicao/';
 const EQUIPES = 'tools/admin/';
 const CONF = 'tools/conferencia/';
+const IMPORTACOES = 'tools/importacoes/';
 
 export const MENU = [
   { grupo: 'Operação', itens: [
@@ -27,11 +28,10 @@ export const MENU = [
   ] },
   { grupo: 'Produtividade', itens: [
     { id: 'prod', nome: 'Produtividade', icone: 'grafico', link: PAINEL, aba: 'prod', perfis: GESTAO },
-    { id: 'lanc', nome: 'Lançamentos', icone: 'caminhao', link: PAINEL, aba: 'lanc', perfis: GESTAO },
+    { id: 'lanc', nome: 'Lançamentos', icone: 'lista', link: PAINEL, aba: 'lanc', perfis: GESTAO },
     { id: 'carr', nome: 'Carregamentos', icone: 'caixa', link: PAINEL, aba: 'carr', perfis: GESTAO },
     { id: 'leit', nome: 'Leituras', icone: 'qr', link: PAINEL, aba: 'leit', perfis: GESTAO },
     { id: 'div', nome: 'Divergências', icone: 'alerta', link: PAINEL, aba: 'div', perfis: ADMIN },
-    { id: 'importar', nome: 'Importar 967', icone: 'upload', link: PAINEL, aba: 'importar', perfis: ADMIN },
     { id: 'config', nome: 'Configurações', icone: 'engrenagem', link: PAINEL, aba: 'config', perfis: ADMIN },
   ] },
   { grupo: 'Pessoas', itens: [
@@ -54,6 +54,9 @@ export const MENU = [
     { id: 'cf-historico', nome: 'Histórico de pontuação', icone: 'calendario', link: CONF, aba: 'historico', perfis: ADMIN },
     { id: 'cf-feedback', nome: 'Feedback', icone: 'mensagem', link: CONF, aba: 'feedback', perfis: ADMIN },
     { id: 'cf-config', nome: 'Configuração da conferência', icone: 'engrenagem', link: CONF, aba: 'config', perfis: ADMIN },
+  ] },
+  { grupo: 'Dados', itens: [
+    { id: 'importacoes', nome: 'Importações', icone: 'upload', link: IMPORTACOES, aba: 'importar', perfis: ADMIN },
   ] },
 ];
 

@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#F2F3F7">
+  <script src="../../assets/js/guarda.js"></script>
+  <title>Importações · Ferramentas do CD</title>
+  <link rel="manifest" href="../../manifest.json">
+  <link rel="icon" href="../../assets/icons/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../assets/css/global.css">
+  <link rel="stylesheet" href="../conferencia/conferencia.css">
+</head>
+<body>
+  <!-- Fica escondido: o estado da gravação aparece na barra do sistema -->
+  <header class="topo">
+    <div class="sync">
+      <span id="sync-status" class="ponto">Conectando…</span>
+      <span id="sync-pend" class="pendentes" hidden></span>
+    </div>
+  </header>
+
+  <!-- Todas as importações de arquivos do sistema ficam nesta tela -->
+  <main class="conteudo">
+    <div class="wrap">
+      <p class="suave imp-intro">Cada relatório tem o seu campo. Depois de escolher o arquivo, confira a prévia e grave.</p>
+
+      <h2 class="imp-grupo">Carregamentos</h2>
+    <div class="cartao">
+      <h2>Carregamentos do Winthor (967)</h2>
+      <p class="suave">Selecione o arquivo .xls ou .xlsx exportado. Reimportar atualiza os carregamentos que já existem, sem duplicar.</p>
+      <div class="campo">
+        <label for="imp-arquivo">Arquivo</label>
+        <input type="file" id="imp-arquivo" accept=".xls,.xlsx,.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv">
+      </div>
+    </div>
+
+    <div class="cartao" id="imp-config" hidden>
+      <h3>Colunas da planilha</h3>
+      <p class="suave">O app tenta reconhecer as colunas sozinho. Confira e ajuste se precisar.</p>
+      <div class="grade-filtros">
+        <div class="campo"><label for="imp-planilha">Planilha (aba)</label><select id="imp-planilha"></select></div>
+        <div class="campo"><label for="imp-linha">Linha do cabeçalho</label><input type="number" id="imp-linha" min="1"></div>
+        <div class="campo"><label for="imp-col-carregamento">Nº do carregamento *</label><select id="imp-col-carregamento" data-col="carregamento"></select></div>
+        <div class="campo"><label for="imp-col-destino">Destino</label><select id="imp-col-destino" data-col="destino"></select></div>
+        <div class="campo"><label for="imp-col-rota">Rota</label><select id="imp-col-rota" data-col="rota"></select></div>
+        <div class="campo"><label for="imp-col-peso">Peso</label><select id="imp-col-peso" data-col="peso"></select></div>
+        <div class="campo"><label for="imp-col-data">Data do carregamento</label><select id="imp-col-data" data-col="data"></select></div>
+        <div class="campo"><label for="imp-data-padrao">Data (quando não há coluna)</label><input type="date" id="imp-data-padrao"></div>
+        <div class="campo">
+          <label for="imp-ignorar">Não importar estes destinos</label>
+          <input id="imp-ignorar" value="VENDA BALCAO">
+          <span class="ajuda">Separe por vírgula. Ex.: vendas no balcão, que não passam pelas equipes.</span>
+        </div>
+      </div>
+      <label class="check mt"><input type="checkbox" id="imp-somar" checked> Somar o peso quando o mesmo carregamento aparece em várias linhas</label>
+    </div>
+
+    <div class="cartao" id="imp-previa-box" hidden>
+      <h3>Prévia</h3>
+      <div class="kpis" id="imp-resumo"></div>
+      <div class="tabela-wrap"><table class="tabela">
+        <thead><tr><th>Carregamento</th><th>Destino</th><th>Rota</th><th class="num">Peso (kg)</th><th>Data</th><th>Situação</th></tr></thead>
+        <tbody id="imp-previa"></tbody>
+      </table></div>
+      <div class="btns mt">
+        <button class="btn sucesso" type="button" id="imp-confirmar">Confirmar importação</button>
+        <button class="btn secundario" type="button" id="imp-cancelar">Cancelar</button>
+      </div>
+      <div id="imp-status" class="mt"></div>
+    </div>
+
+      <h2 class="imp-grupo">Conferência</h2>
+      <div class="aviso erro" id="aviso" role="status" hidden></div>
+      <div id="app"><p class="carregando-painel">Carregando…</p></div>
+    </div>
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="../conferencia/painel.js"></script>
+  <script type="module" src="../../assets/js/pwa.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

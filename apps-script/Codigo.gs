@@ -23,7 +23,7 @@ const LOGIN_INICIAL_ADMIN = 'TROQUE-ESTE-LOGIN';
 const SENHA_INICIAL_ADMIN = 'TROQUE-ESTA-SENHA';
 
 // Mostrada no rodapé do app. Aumente sempre que este arquivo mudar.
-const VERSAO_SERVIDOR = 'v3.1.0';
+const VERSAO_SERVIDOR = 'v3.2.0';
 
 const DIAS_SESSAO = 60;         // por quanto tempo o celular fica logado
 const MAX_TENTATIVAS_LOGIN = 5;  // erros seguidos antes de bloquear por 5 minutos
@@ -1279,7 +1279,14 @@ function acaoConferenciaDados() {
   Object.keys(pedacos).forEach((p) => {
     partes[p] = pedacos[p].sort((a, b) => Number(a.ordem) - Number(b.ordem)).map((r) => r.json).join('');
   });
-  return { partes: partes };
+  return { partes: partes, equipe: confEquipe() };
+}
+
+/** Equipe de conferência = colaboradores do setor CONFERENCIA (cadastro único de pessoas). */
+function confEquipe() {
+  const semAcento = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().trim();
+  return ler('ExpColaboradores').filter((c) => semAcento(c.setor) === 'CONFERENCIA')
+    .map((c) => ({ chapa: c.chapa, nome: c.nome, funcao: c.funcao }));
 }
 
 /** Grava só as partes enviadas; as demais ficam como estão. */

@@ -41,7 +41,6 @@
     <button data-aba="carr" role="tab">Carregamentos</button>
     <button data-aba="leit" role="tab">Leituras</button>
     <button data-aba="div" role="tab" data-admin hidden>Divergências</button>
-    <button data-aba="importar" role="tab" data-admin hidden>Importar 967</button>
     <button data-aba="config" role="tab" data-admin hidden>Configurações</button>
   </nav>
 
@@ -101,53 +100,6 @@
         <thead><tr><th>Carregamento</th><th>Destino</th><th>Rota</th><th class="num">Peso (kg)</th><th>Data</th></tr></thead>
         <tbody id="tb-div-nao"></tbody>
       </table></div>
-    </section>
-
-    <!-- IMPORTAR 967 -->
-    <section id="aba-importar" hidden>
-      <div class="cartao">
-        <h2>Importar rotina 967 (Winthor)</h2>
-        <p class="suave">Selecione o arquivo .xls ou .xlsx exportado. Reimportar atualiza os carregamentos que já existem, sem duplicar.</p>
-        <div class="campo">
-          <label for="imp-arquivo">Arquivo</label>
-          <input type="file" id="imp-arquivo" accept=".xls,.xlsx,.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv">
-        </div>
-      </div>
-
-      <div class="cartao" id="imp-config" hidden>
-        <h3>Colunas da planilha</h3>
-        <p class="suave">O app tenta reconhecer as colunas sozinho. Confira e ajuste se precisar.</p>
-        <div class="grade-filtros">
-          <div class="campo"><label for="imp-planilha">Planilha (aba)</label><select id="imp-planilha"></select></div>
-          <div class="campo"><label for="imp-linha">Linha do cabeçalho</label><input type="number" id="imp-linha" min="1"></div>
-          <div class="campo"><label for="imp-col-carregamento">Nº do carregamento *</label><select id="imp-col-carregamento" data-col="carregamento"></select></div>
-          <div class="campo"><label for="imp-col-destino">Destino</label><select id="imp-col-destino" data-col="destino"></select></div>
-          <div class="campo"><label for="imp-col-rota">Rota</label><select id="imp-col-rota" data-col="rota"></select></div>
-          <div class="campo"><label for="imp-col-peso">Peso</label><select id="imp-col-peso" data-col="peso"></select></div>
-          <div class="campo"><label for="imp-col-data">Data do carregamento</label><select id="imp-col-data" data-col="data"></select></div>
-          <div class="campo"><label for="imp-data-padrao">Data (quando não há coluna)</label><input type="date" id="imp-data-padrao"></div>
-          <div class="campo">
-            <label for="imp-ignorar">Não importar estes destinos</label>
-            <input id="imp-ignorar" value="VENDA BALCAO">
-            <span class="ajuda">Separe por vírgula. Ex.: vendas no balcão, que não passam pelas equipes.</span>
-          </div>
-        </div>
-        <label class="check mt"><input type="checkbox" id="imp-somar" checked> Somar o peso quando o mesmo carregamento aparece em várias linhas</label>
-      </div>
-
-      <div class="cartao" id="imp-previa-box" hidden>
-        <h3>Prévia</h3>
-        <div class="kpis" id="imp-resumo"></div>
-        <div class="tabela-wrap"><table class="tabela">
-          <thead><tr><th>Carregamento</th><th>Destino</th><th>Rota</th><th class="num">Peso (kg)</th><th>Data</th><th>Situação</th></tr></thead>
-          <tbody id="imp-previa"></tbody>
-        </table></div>
-        <div class="btns mt">
-          <button class="btn sucesso" type="button" id="imp-confirmar">Confirmar importação</button>
-          <button class="btn secundario" type="button" id="imp-cancelar">Cancelar</button>
-        </div>
-        <div id="imp-status" class="mt"></div>
-      </div>
     </section>
 
     <!-- CONFIGURAÇÕES -->

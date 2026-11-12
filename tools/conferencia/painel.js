@@ -101,7 +101,7 @@ function limiarPremio(){ var F=getFaixas(); for(var i=0;i<F.length;i++){ if(F[i]
 
 /* ====================== ESTADO ====================== */
 var S = { conferentes:seed(), config:cfgPadrao(), aba:"painel",
-          aberto:null, sel:null, previa:null, previaQual:null, msg:null, addNovos:true, usarDatas:true,
+          aberto:null, sel:null, previa:null, previaQual:null, msg:null, usarDatas:true,
           qualidade:{}, historico:{}, histSel:"", histConf:"__equipe", histAtual:true, paretoMet:"os",
           tempos:null, previaTempo:null, tFiltroIni:"", tFiltroFim:"", tOrdem:"pctOcioso", tSoAtivos:true, tDet:null };
 
@@ -330,30 +330,23 @@ function abaPainel(){
 
 /* ====================== ABA CONFERENTES ====================== */
 function abaConferentes(){
-  var h = '<div class="card"><h2 class="disp">Adicionar conferente</h2>'+
-    '<p class="ajuda">Preencha a matrícula, o nome e os números do mês (pontos, O.S. e unidades).</p>'+
-    '<div class="grade">'+
-      '<label class="campo"><span>Matrícula</span><input type="text" id="nMat"></label>'+
-      '<label class="campo" style="grid-column:span 2"><span>Nome</span><input type="text" id="nNome"></label>'+
-      '<label class="campo"><span>Pontos</span><input type="number" id="nPts"></label>'+
-      '<label class="campo"><span>Qt O.S.</span><input type="number" id="nOs"></label>'+
-      '<label class="campo"><span>Qt unidades</span><input type="number" id="nUn"></label>'+
-      '<label class="campo"><span>Meta em pontos (opcional)</span><input type="number" id="nMeta"></label>'+
-    '</div><button class="btn primario" data-act="novo">Adicionar à equipe</button>'+
-    (S.msg?'<div class="aviso ok">'+esc(S.msg)+'</div>':'')+'</div>';
-
-  h += '<h2 class="disp" style="font-size:19px;margin:18px 0 2px">Equipe ('+S.conferentes.length+')</h2>'+
-       '<p class="ajuda" style="margin-bottom:10px">Toque em qualquer número para corrigir. '+
-       'Desmarque para tirar alguém do painel sem apagar o cadastro.</p>';
+  /* A equipe vem de Colaboradores e Acessos (setor CONFERENCIA): aqui só os números */
+  var h = '<div class="card"><h2 class="disp">Equipe de conferência ('+S.conferentes.length+')</h2>'+
+    '<p class="ajuda" style="margin-bottom:0">A lista vem de <b>Colaboradores e Acessos</b>: todos do setor <b>CONFERENCIA</b>. '+
+    'Para incluir, renomear ou tirar alguém, altere lá. Aqui você corrige os números do mês e pode '+
+    'desmarcar quem não deve entrar no ranking.</p></div>';
+  if(!S.conferentes.length){
+    h += '<div class="card"><div class="aviso neutro">Nenhum colaborador no setor CONFERENCIA. '+
+      'Cadastre em Colaboradores e Acessos.</div></div>';
+  }
 
   S.conferentes.forEach(function(c){
     h += '<div class="card" style="padding:11px">'+
-      '<div style="display:flex;align-items:center;gap:8px">'+
+      '<label style="display:flex;align-items:center;gap:8px;cursor:pointer">'+
         '<input type="checkbox" data-act="ativo" data-id="'+c.id+'"'+(c.ativo?" checked":"")+' style="width:16px;height:16px">'+
-        '<input type="text" data-act="upd" data-id="'+c.id+'" data-campo="nome" value="'+esc(c.nome)+'" style="flex:1;border-color:transparent;font-weight:600;padding:5px">'+
-        '<button class="mini" data-act="remover" data-id="'+c.id+'">Remover</button>'+
-      '</div><div class="grade4" style="margin-top:8px">'+
-        '<label><span>Matrícula</span><input type="text" data-act="upd" data-id="'+c.id+'" data-campo="matricula" value="'+esc(c.matricula)+'"></label>'+
+        '<b style="flex:1;min-width:0;font-size:14px">'+esc(c.nome)+'</b>'+
+        '<span class="ajuda" style="margin:0">Chapa '+esc(c.matricula)+'</span>'+
+      '</label><div class="grade4" style="grid-template-columns:repeat(3,1fr);margin-top:8px">'+
         '<label><span>Pontos</span><input type="number" data-act="upd" data-id="'+c.id+'" data-campo="pontos" value="'+c.pontos+'"></label>'+
         '<label><span>O.S.</span><input type="number" data-act="upd" data-id="'+c.id+'" data-campo="os" value="'+c.os+'"></label>'+
         '<label><span>Unidades</span><input type="number" data-act="upd" data-id="'+c.id+'" data-campo="un" value="'+c.un+'"></label>'+
@@ -362,27 +355,46 @@ function abaConferentes(){
   return h;
 }
 
-/* ====================== BLOCO IMPORTAR (dentro de Configuração) ====================== */
+/* ====================== IMPORTAÇÕES (tela Importações do sistema) ====================== */
+/* Um campo para cada relatório; a prévia aparece logo abaixo do campo usado */
+var TIPOS_IMPORT = {
+  pontuacao: {titulo:"Pontuação da conferência (8173)", colunas:"MATRICULA, NOME, PONTOS, NUMERO e NUMERO2",
+    destino:"Do mês em apuração atualiza o painel; de outro mês vai para o Histórico de pontuação."},
+  qualidade: {titulo:"Ocorrências da conferência (8630)", colunas:"NUMOS, TEVE_OCORRENCIA e QTD_OCORRENCIAS",
+    destino:"Alimenta a tela Qualidade."},
+  tempos:    {titulo:"Tempos de conferência (8635)", colunas:"CONFERENTE, NUMOS, INICIO e FIM",
+    destino:"Alimenta a tela Tempos."}
+};
+function abaImportacoes(){
+  var q=qualDaComp(), h="";
+  var ultima = {
+    pontuacao: S.config.ultimaImportacao ? dBR(S.config.ultimaImportacao)+(S.config.arquivo?' · '+esc(S.config.arquivo):'') : 'nunca importada',
+    qualidade: q ? dBR(q.importadoEm)+' · '+esc(nomeMes(q.competencia)) : 'nunca importada',
+    tempos: S.tempos ? dBR(S.tempos.importadoEm)+' · '+inte(S.tempos.regs.length)+' O.S.' : 'nunca importado'
+  };
+  Object.keys(TIPOS_IMPORT).forEach(function(k){
+    var t=TIPOS_IMPORT[k];
+    h += '<div class="cartao imp-cartao"><h2>'+t.titulo+'</h2>'+
+      '<p class="suave">Arquivo .xls, .xlsx ou .csv com as colunas '+t.colunas+'. '+t.destino+'</p>'+
+      '<div class="campo"><label for="imp-'+k+'">Arquivo</label>'+
+      '<input type="file" id="imp-'+k+'" accept=".xls,.xlsx,.csv" data-act="arquivo" data-tipo="'+k+'"></div>'+
+      '<p class="suave" style="margin:0;font-size:.82rem">Última importação: '+ultima[k]+'</p>'+
+      (S.msg && S.msgTipo===k ? '<div class="aviso '+(S.msg.tipo==="ok"?"sucesso":S.msg.tipo==="atencao"?"alerta":(S.msg.tipo||"sucesso"))+' mt">'+esc(S.msg.texto||S.msg)+'</div>':'')+
+      '</div>'+previaSo(k);
+  });
+  return h;
+}
+function previaSo(tipo){
+  var a=S.previaTempo, b=S.previaQual, c=S.previa;
+  if(tipo!=="tempos") S.previaTempo=null;
+  if(tipo!=="qualidade") S.previaQual=null;
+  if(tipo!=="pontuacao") S.previa=null;
+  var h=blocoImportar();
+  S.previaTempo=a; S.previaQual=b; S.previa=c;
+  return h;
+}
 function blocoImportar(){
-  var q=qualDaComp(), comps=Object.keys(S.historico||{}).sort().reverse();
-  var h = '<div class="card"><h2 class="disp">Importar arquivos do sistema</h2>'+
-    '<p class="ajuda">O mesmo campo aceita os dois relatórios (.xls, .xlsx ou .csv) — o painel identifica sozinho qual é:</p>'+
-    '<ul style="margin:6px 0 10px;padding-left:18px;font-size:13px;color:#475569;line-height:1.6">'+
-      '<li><b>Pontuação (8173)</b> — colunas MATRICULA, NOME, PONTOS, NUMERO, NUMERO2. '+
-      'Do mês em apuração atualiza o painel; de outro mês vai para o <b>Histórico</b>.</li>'+
-      '<li><b>Ocorrências (8630)</b> — colunas NUMOS, TEVE_OCORRENCIA, QTD_OCORRENCIAS. '+
-      'Alimenta a aba <b>Qualidade</b>.</li>'+
-      '<li><b>Tempos (8635)</b> — colunas CONFERENTE, NUMOS, INICIO e FIM. '+
-      'Alimenta a aba <b>Tempos</b>.</li></ul>'+
-    '<input type="file" accept=".xls,.xlsx,.csv" data-act="arquivo" style="font-size:13px">'+
-    '<div style="display:flex;flex-wrap:wrap;gap:14px;margin-top:10px;font-size:12px;color:var(--suave)">'+
-      '<span>Pontuação: '+(S.config.ultimaImportacao ? dBR(S.config.ultimaImportacao)+
-        (S.config.arquivo?' · '+esc(S.config.arquivo):'') : 'nunca importada')+'</span>'+
-      '<span>Qualidade: '+(q ? dBR(q.importadoEm)+' · '+esc(nomeMes(q.competencia)) : 'nunca importada')+'</span>'+
-      '<span>Tempos: '+(S.tempos ? dBR(S.tempos.importadoEm)+' · '+inte(S.tempos.regs.length)+' O.S.' : 'nunca importado')+'</span>'+
-      '<span>Histórico: '+(comps.length ? comps.length+' mês(es) guardado(s)' : 'vazio')+'</span></div>'+
-    (S.msg && S.aba==="config" ? '<div class="aviso '+(S.msg.tipo||"ok")+'">'+esc(S.msg.texto||S.msg)+'</div>':'')+
-    '</div>';
+  var h = '';
 
   /* ---- prévia do relatório de tempos (8635) ---- */
   var pt=S.previaTempo;
@@ -475,9 +487,12 @@ function blocoImportar(){
         h += '<div class="aviso '+(p.modo==="reiniciar"?"atencao":"neutro")+'">'+txtAus+
              esc(p.ausentes.map(function(c){return c.nome;}).join(", "))+'.</div>';
       }
-      h += '<label style="display:flex;gap:8px;align-items:center;font-size:14px;margin-top:12px">'+
-        '<input type="checkbox" data-act="addNovos"'+(S.addNovos?" checked":"")+' style="width:16px;height:16px">'+
-        'Cadastrar quem aparece no arquivo e ainda não está na equipe</label>';
+      var foraEquipe = p.linhas.filter(function(l){ return !l.id; });
+      if(foraEquipe.length){
+        h += '<div class="aviso atencao">Não estão no setor CONFERENCIA de <b>Colaboradores e Acessos</b> e ficam de fora: '+
+          esc(foraEquipe.map(function(l){ return l.nome+" ("+l.matricula+")"; }).join(", "))+
+          '. Cadastre lá e importe de novo para que entrem no painel.</div>';
+      }
     }
     if(p.modo==="reiniciar"){
       h += '<label style="display:flex;gap:8px;align-items:center;font-size:14px;margin-top:4px">'+
@@ -2197,8 +2212,10 @@ function abaConfig(){
     '<p class="ajuda" style="margin:0">Acima da duração máxima, a O.S. é tratada como esquecida em aberto e '+
     'fica fora da mediana de tempo.</p></div>';
 
-  /* ---------- IMPORTAÇÃO ---------- */
-  h += blocoImportar();
+  /* ---------- IMPORTAÇÃO: fica na tela Importações do sistema ---------- */
+  h += '<div class="card"><h2 class="disp">Relatórios do sistema</h2>'+
+    '<p class="ajuda" style="margin-bottom:0">Os relatórios 8173, 8630 e 8635 são importados na tela <b>Importações</b> do menu, '+
+    'junto com os demais arquivos do sistema.</p></div>';
 
   /* ---------- RECOMEÇAR ---------- */
   h += '<div class="card"><h2 class="disp">Recomeçar</h2>'+
@@ -2267,15 +2284,17 @@ function processarDados(dados,nomeArq){
   var achar=function(){ var alvos=[].slice.call(arguments);
     for(var i=0;i<cols.length;i++){ if(alvos.indexOf(chaveCol(cols[i]))>=0) return cols[i]; } return null; };
 
-  /* Relatório de tempos (8635): uma linha por O.S. com INICIO e FIM → vai para Tempos */
-  if(achar("INICIO") && achar("FIM") && achar("CONFERENTE") && achar("NUMOS")){
-    return processarTempos(dados, nomeArq, achar);
+  /* Qual relatório é: tempos (8635), ocorrências (8630) ou pontuação (8173) */
+  var tipo = (achar("INICIO") && achar("FIM") && achar("CONFERENTE") && achar("NUMOS")) ? "tempos"
+    : (achar("NUMOS","NUMEROOS","NROOS") && (achar("TEVEOCORRENCIA") || achar("QTDOCORRENCIAS"))) ? "qualidade"
+    : "pontuacao";
+  if(S.importEsperado && TIPOS_IMPORT[tipo] && tipo!==S.importEsperado){
+    S.msg={tipo:"erro",texto:"Este arquivo é do relatório "+TIPOS_IMPORT[tipo].titulo+". Envie no campo dele."};
+    S.previa=null; S.previaQual=null; S.previaTempo=null;
+    return render();
   }
-
-  /* Relatório de ocorrências (8630): uma linha por O.S. → vai para Qualidade */
-  if(achar("NUMOS","NUMEROOS","NROOS") && (achar("TEVEOCORRENCIA") || achar("QTDOCORRENCIAS"))){
-    return processarQualidade(dados, nomeArq, achar);
-  }
+  if(tipo==="tempos") return processarTempos(dados, nomeArq, achar);
+  if(tipo==="qualidade") return processarQualidade(dados, nomeArq, achar);
   var kMat=achar("MATRICULA","MAT","CODIGO","CHAPA");
   var kNome=achar("NOME","COLABORADOR","FUNCIONARIO","CONFERENTE");
   var kPts=achar("PONTOS","PONTUACAO","PONTO");
@@ -2471,13 +2490,8 @@ function gravarImportacao(){
     });
   }
 
+  /* quem não está em Colaboradores e Acessos não entra: o cadastro de pessoas é um só */
   var novos = p.linhas.filter(function(l){ return !l.id; });
-  if(S.addNovos){
-    novos.forEach(function(l,i){
-      S.conferentes.push({id:"c"+Date.now()+"-"+i, matricula:l.matricula, nome:l.nome, pontos:l.fpts,
-        os:l.os, un:l.un, meta:0, ativo:true, obs:"", pontosAnt:null, erros:0, sobras:0, cargas:0});
-    });
-  }
   S.config.ultimaImportacao=new Date().toISOString().slice(0,10);
   S.config.arquivo=p.arquivo;
   if(S.usarDatas && p.inicio) S.config.inicio=p.inicio;
@@ -2488,7 +2502,7 @@ function gravarImportacao(){
   var acao = modo==="reiniciar" ? ("Novo mês ("+nomeMes(p.competencia)+"): pontuação reiniciada")
            : modo==="somar" ? "Pontuação somada ao mês" : "Pontuação substituída";
   S.msg={tipo:"ok",texto:acao+" — "+qtdAtu+" conferentes"+
-    (S.addNovos && novos.length ? " e "+novos.length+" cadastrados agora" : "")+
+    (novos.length ? " ("+novos.length+" fora de Colaboradores e Acessos ficaram de fora)" : "")+
     (modo==="reiniciar" && p.zerarErros ? ", erros zerados" : "")+"."};
   S.previa=null;
   salvar(); render();
@@ -2515,7 +2529,7 @@ function baixarCSV(){
 /* ====================== RENDER ====================== */
 var ABAS=[["painel","Painel"],["conferentes","Conferentes"],
           ["metas","Metas"],["acomp","Acompanhamento"],["qualidade","Qualidade"],
-          ["lanc","Erros e transportadora"],["tempos","Tempos"],["historico","Histórico"],["feedback","Feedback"],["config","Configuração"]];
+          ["lanc","Erros e transportadora"],["tempos","Tempos"],["historico","Histórico"],["feedback","Feedback"],["config","Configuração"],["importar","Importações"]];
 /* Faixa fixa no topo (vidro): período em apuração e os filtros da tela aberta */
 var telaLarga = window.matchMedia("(min-width: 761px)");
 function filtrosDaAba(){
@@ -2577,6 +2591,7 @@ function render(){
   else if(S.aba==="tempos") app.innerHTML=abaTempos();
   else if(S.aba==="historico") app.innerHTML=abaHistorico();
   else if(S.aba==="feedback") app.innerHTML=abaFeedback();
+  else if(S.aba==="importar") app.innerHTML=abaImportacoes();
   else app.innerHTML=abaConfig();
 }
 
@@ -2593,10 +2608,27 @@ window.addEventListener("hashchange", function(){
   if(k!==S.aba){ S.aba=k; S.msg=null; render(); window.scrollTo(0,0); }
 });
 
+/* A equipe é quem está no setor CONFERENCIA de Colaboradores e Acessos.
+   Os números de cada um (pontos, meta, erros...) ficam guardados no painel e são
+   ligados pela chapa (= matrícula dos relatórios) ou, se não bater, pelo nome. */
+function montarEquipe(equipe, guardados){
+  var porMat={}, porNome={};
+  guardados.forEach(function(c){
+    if(c.matricula) porMat[String(c.matricula).trim()]=c;
+    porNome[chaveNome(c.nome||"")]=c;
+  });
+  return equipe.map(function(p){
+    var chapa=String(p.chapa||"").trim();
+    var g = porMat[chapa] || porNome[chaveNome(p.nome||"")] || {};
+    return Object.assign({pontos:0, os:0, un:0, meta:0, ativo:true, obs:"", pontosAnt:null, erros:0, sobras:0, cargas:0},
+      g, {id:"c"+chapa, matricula:chapa, nome:String(p.nome||"").toUpperCase()});
+  }).sort(function(a,b){ return a.nome.localeCompare(b.nome); });
+}
+
 /* Chamado por app.js com os dados da planilha */
 window.iniciarPainel = function(dados){
   S.aba = abaDoEndereco();
-  S.conferentes = (dados && dados.conferentes) || [];
+  S.conferentes = montarEquipe((dados && dados.equipe) || [], (dados && dados.conferentes) || []);
   S.config = (dados && dados.config) ? Object.assign({}, CONFIG_PADRAO, dados.config) : cfgPadrao();
   S.conferentes.forEach(function(c){
     if(typeof c.erros!=="number") c.erros=0;
@@ -2617,21 +2649,6 @@ document.addEventListener("click", function(e){
   var act=al.getAttribute("data-act"), id=al.getAttribute("data-id");
   if(act==="abrir"){ S.aberto = (S.aberto===id ? null : id); render(); }
   else if(act==="csv"){ e.stopPropagation(); baixarCSV(); }
-  else if(act==="novo"){
-    var nome=document.getElementById("nNome").value.trim();
-    if(!nome){ alert("Informe o nome do conferente."); return; }
-    S.conferentes.push({ id:"c"+Date.now(), matricula:document.getElementById("nMat").value.trim()||"—",
-      nome:nome.toUpperCase(), pontos:Number(document.getElementById("nPts").value)||0,
-      os:Number(document.getElementById("nOs").value)||0, un:Number(document.getElementById("nUn").value)||0,
-      meta:Number(document.getElementById("nMeta").value)||0, ativo:true, obs:"", pontosAnt:null, erros:0, sobras:0, cargas:0 });
-    S.msg="Conferente adicionado à equipe."; salvar(); render();
-  }
-  else if(act==="remover"){
-    var c=acharConf(id);
-    if(c && confirm("Remover "+c.nome+" da lista? Essa ação não volta.")){
-      S.conferentes=S.conferentes.filter(function(x){return x.id!==id;}); salvar(); render();
-    }
-  }
   else if(act==="metaRapida"){ S.config.metaPadrao=Number(al.getAttribute("data-v")); salvar(); render(); }
   else if(act==="faixaAdd"){
     var F=getFaixas().map(function(f){return {min:f.min,valor:f.valor};});
@@ -2771,12 +2788,15 @@ document.addEventListener("change", function(e){
     var Fv=getFaixas().map(function(f){return {min:f.min,valor:f.valor};});
     if(Fv[iv]){ Fv[iv].valor=Math.max(0,Number(String(al.value).replace(",","."))||0); S.config.faixas=normalizarFaixas(Fv); salvar(); render(); }
   }
-  else if(act==="addNovos"){ S.addNovos=al.checked; }
   else if(act==="usarDatas"){ S.usarDatas=al.checked; }
   else if(act==="modoImport"){ if(S.previa){ S.previa.modo=al.value;
     if(al.value!=="reiniciar") S.previa.zerarErros=false;
     else S.previa.zerarErros=!S.previa.mesmoMes; render(); } }
   else if(act==="zerarErrosImp"){ if(S.previa){ S.previa.zerarErros=al.checked; } }
-  else if(act==="arquivo"){ if(al.files && al.files[0]) lerArquivo(al.files[0]); }
+  else if(act==="arquivo"){
+    S.importEsperado = al.getAttribute("data-tipo") || null;
+    S.msgTipo = S.importEsperado;
+    if(al.files && al.files[0]) lerArquivo(al.files[0]);
+  }
 });
 

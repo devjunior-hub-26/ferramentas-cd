@@ -284,3 +284,8 @@ tr.lin-at td{background:#EEF6FF;font-weight:700}
   table.tab thead{display:table-header-group}
   table.tab tr{break-inside:avoid;page-break-inside:avoid}
 }
+
+/* Tela Importações */
+.imp-grupo { font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--texto-suave); margin: 22px 2px 8px; }
+.imp-intro { margin: 0 2px 4px; }
+.imp-cartao h2 { margin-bottom: .3em; }

@@ -24,3 +24,13 @@
 - Nomes e matrículas dos conferentes **não** ficam no código: a lista inicial é cadastrada direto
   na planilha.
 - "Recomeçar" agora volta só a configuração para o padrão (a lista original não existe mais no código).
+
+## v3.3.0 — sistema único
+- A equipe da conferência vem de Colaboradores e Acessos: todos do setor `CONFERENCIA`
+  (`conferenciaDados` devolve `equipe`). Os números de cada um ficam no painel, ligados pela
+  chapa (= matrícula dos relatórios) ou pelo nome. Não há mais cadastro de conferente no painel.
+- Quem aparece num relatório e não está no setor fica de fora, com aviso para cadastrar.
+- Nova tela **Importações** (`tools/importacoes/`, grupo Dados do menu): um campo por relatório
+  (967, 8173, 8630, 8635). O sistema recusa um arquivo enviado no campo de outro relatório.
+  "Importar 967" saiu de Produtividade e a importação saiu da Configuração da conferência.
+- Regra escrita em docs/NOVA-FERRAMENTA.md: cadastro de pessoas e importações são únicos.
