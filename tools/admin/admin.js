@@ -26,7 +26,7 @@ async function carregarTudo() {
 // ---------------------------------------------------------------
 // Equipes
 // ---------------------------------------------------------------
-// Aqui só se criam as equipes. As pessoas são ligadas em Colaboradores e Acessos.
+// Aqui só se criam as equipes. As pessoas são ligadas em Colaboradores.
 function renderEquipes() {
   const mostrarInativas = $('#mostrar-inativas').checked;
 
@@ -54,7 +54,7 @@ function renderEquipes() {
   const semEquipe = db.usuarios.filter((u) => u.ativo && u.perfil !== 'admin' && !vinculoAtivo(u.id));
   $('#sem-equipe').hidden = semEquipe.length === 0;
   $('#sem-equipe').innerHTML = `<h3>Sem equipe (${semEquipe.length})</h3><p class="suave" style="margin:0">
-    ${semEquipe.map((u) => esc(u.nome)).join(', ')}<br><small>Essas pessoas não conseguem lançar leituras. Escolha a equipe delas em Colaboradores e Acessos.</small></p>`;
+    ${semEquipe.map((u) => esc(u.nome)).join(', ')}<br><small>Essas pessoas não conseguem lançar leituras. Escolha a equipe delas em Colaboradores.</small></p>`;
 }
 
 $('#mostrar-inativas').addEventListener('change', renderEquipes);
@@ -75,7 +75,7 @@ $('#lista-equipes').addEventListener('click', async (ev) => {
       toast('Equipe desativada.', 'sucesso');
     } else if (d.reativar) {
       await api('reativarEquipe', { equipe_id: d.reativar });
-      toast('Equipe reativada. Escolha as pessoas em Colaboradores e Acessos.', 'sucesso');
+      toast('Equipe reativada. Escolha as pessoas em Colaboradores.', 'sucesso');
     } else if (d.editarEquipe) {
       return editarEquipe(equipePorId(d.editarEquipe));
     } else return;

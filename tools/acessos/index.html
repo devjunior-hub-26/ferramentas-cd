@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#F2F3F7">
+  <script src="../../assets/js/guarda.js"></script>
+  <title>Acessos · Ferramentas do CD</title>
+  <link rel="manifest" href="../../manifest.json">
+  <link rel="icon" href="../../assets/icons/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../assets/css/global.css">
+  <style>
+    .pessoa small { display: block; color: var(--texto-2, #5b6478); }
+    .telas-grupo { border: 1px solid var(--borda); border-radius: 12px; padding: 10px 12px; margin-top: 10px; }
+    .telas-grupo legend { font-weight: 700; padding: 0 6px; }
+    .telas-grupo .linha-grupo { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .telas-itens { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 2px 12px; margin-top: 6px; }
+    .telas-itens .check { min-height: 40px; }
+    .modal .modal-corpo { max-height: 70vh; overflow-y: auto; }
+    .resumo-telas { max-width: 260px; }
+  </style>
+</head>
+<body>
+  <header class="topo">
+    <a class="icone-btn" id="btn-voltar" href="../../index.html" aria-label="Voltar ao início" title="Início"></a>
+    <div class="titulo"><strong>Acessos</strong><small id="t-usuario"></small></div>
+  </header>
+
+  <main class="conteudo">
+    <details class="filtros-fixos"><summary>Filtros</summary>
+      <div class="grade-filtros">
+        <div class="campo"><label for="busca">Buscar</label><input id="busca" type="search" placeholder="Nome, chapa ou login"></div>
+        <div class="campo"><label for="f-situacao">Situação</label>
+          <select id="f-situacao">
+            <option value="all">Todas</option><option value="com">Com acesso</option>
+            <option value="sem">Sem acesso</option><option value="bloq">Bloqueadas</option>
+          </select></div>
+        <div class="campo"><label for="f-setor">Setor</label><select id="f-setor"><option value="all">Todos</option></select></div>
+      </div>
+    </details>
+
+    <div class="aviso info">Só o administrador vê esta tela. Aqui você libera o acesso de cada pessoa e escolhe quais telas e relatórios ela pode abrir.
+      Quem fica em <b>Padrão do perfil</b> vê o que o perfil dela sempre viu.</div>
+    <div class="kpis" id="kpis"></div>
+    <p class="carregando" id="carregando">Carregando acessos…</p>
+
+    <div class="tabela-wrap"><table class="tabela titulo-2">
+      <thead><tr><th>Pessoa</th><th>Usuário</th><th>Perfil</th><th>Situação</th><th>Telas liberadas</th><th>Ações</th></tr></thead>
+      <tbody id="corpo"></tbody>
+    </table></div>
+  </main>
+
+  <dialog class="modal" id="dlg-acesso">
+    <form id="form-acesso">
+      <div class="modal-topo" id="a-titulo">Acesso</div>
+      <div class="modal-corpo">
+        <p class="suave" id="a-pessoa" style="margin-top:0"></p>
+        <label class="check"><input type="checkbox" id="a-ativo"> Tem acesso à plataforma?</label>
+        <div id="a-bloco" hidden>
+          <div class="grade-filtros">
+            <div class="campo"><label for="a-login">Usuário *</label><input id="a-login" autocapitalize="none" autocorrect="off" spellcheck="false" pattern="[a-zA-Z0-9._\-]{3,40}"></div>
+            <div class="campo"><label for="a-senha" id="a-senha-rotulo">Senha *</label><input id="a-senha" type="text" minlength="6" autocomplete="new-password"></div>
+            <div class="campo"><label for="a-perfil">Perfil *</label>
+              <select id="a-perfil"><option value="carregador">Carregador</option><option value="lider">Líder</option><option value="admin">Administrador</option></select></div>
+            <div class="campo" id="a-vinculo-caixa" hidden><label for="a-vinculo">Ligar ao colaborador</label><select id="a-vinculo"></select></div>
+          </div>
+          <span class="ajuda" id="a-senha-ajuda">Mínimo 6 caracteres. Informe à pessoa.</span>
+
+          <h3 style="margin:16px 0 4px">Telas liberadas</h3>
+          <p class="suave" id="a-telas-admin" hidden><small>O administrador vê todas as telas.</small></p>
+          <div id="a-telas-caixa">
+            <label class="check"><input type="radio" name="modo" value="padrao" id="a-modo-padrao"> Padrão do perfil</label>
+            <label class="check"><input type="radio" name="modo" value="escolher" id="a-modo-escolher"> Escolher as telas</label>
+            <div id="a-telas"></div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-rodape">
+        <button class="btn pequeno secundario" type="button" data-fechar>Cancelar</button>
+        <button class="btn pequeno" type="submit">Salvar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script type="module" src="../../assets/js/pwa.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

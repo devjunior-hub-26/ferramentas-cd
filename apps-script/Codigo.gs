@@ -23,13 +23,13 @@ const LOGIN_INICIAL_ADMIN = 'TROQUE-ESTE-LOGIN';
 const SENHA_INICIAL_ADMIN = 'TROQUE-ESTA-SENHA';
 
 // Mostrada no rodapé do app. Aumente sempre que este arquivo mudar.
-const VERSAO_SERVIDOR = 'v3.2.0';
+const VERSAO_SERVIDOR = 'v3.4.0';
 
 const DIAS_SESSAO = 60;         // por quanto tempo o celular fica logado
 const MAX_TENTATIVAS_LOGIN = 5;  // erros seguidos antes de bloquear por 5 minutos
 
 const TABELAS = {
-  Usuarios: ['id', 'login', 'nome', 'perfil', 'ativo', 'senha_hash', 'sal', 'criado_em'],
+  Usuarios: ['id', 'login', 'nome', 'perfil', 'ativo', 'senha_hash', 'sal', 'criado_em', 'telas'],
   Equipes: ['id', 'nome', 'lider_id', 'ativa', 'criado_em'],
   Membros: ['id', 'equipe_id', 'usuario_id', 'inicio', 'fim', 'alterado_por'],
   Leituras: ['id', 'carregamento', 'box', 'transacao', 'usuario_id', 'usuario_nome', 'equipe_id', 'equipe_nome',
@@ -64,7 +64,7 @@ function doPost(e) {
     const req = JSON.parse(e.postData.contents);
     const acao = ACOES[req.acao];
     if (!acao) throw new ErroApp('ACAO_INVALIDA', 'Ação desconhecida.');
-    const usuario = acao.publica ? null : autenticar(req.token, acao.perfis);
+    const usuario = acao.publica ? null : autenticar(req.token, acao);
     resp = { ok: true, dados: acao.fn(req.dados || {}, usuario) };
   } catch (err) {
     if (err instanceof ErroApp) {
@@ -89,7 +89,13 @@ class ErroApp extends Error {
   }
 }
 
-// perfis: null = qualquer usuário logado
+// perfis: null = qualquer usuário logado.
+// telas: itens do menu (assets/js/tools.js) que liberam a ação para quem tem
+// acessos escolhidos na tela Acessos. Sem "telas", só o perfil decide.
+const T_PAINEL = ['prod', 'lanc', 'carr', 'leit', 'div', 'config'];
+const T_QUADRO = ['org', 'att', 'hist', 'ferias', 'cfg'];
+const T_CONF = ['cf-painel', 'cf-conferentes', 'cf-metas', 'cf-acomp', 'cf-qualidade', 'cf-lanc', 'cf-tempos',
+  'cf-historico', 'cf-feedback', 'cf-config', 'importacoes'];
 const ACOES = {
   versao: { publica: true, fn: () => ({ versao: VERSAO_SERVIDOR }) },
   login: { publica: true, fn: acaoLogin },
@@ -98,44 +104,48 @@ const ACOES = {
 
   // Leitura de QR Code
   minhaEquipe: { fn: acaoMinhaEquipe },
-  conferirLeitura: { perfis: ['lider', 'carregador'], fn: acaoConferirLeitura },
-  registrarLancamento: { perfis: ['lider', 'carregador'], fn: acaoRegistrarLancamento },
+  conferirLeitura: { perfis: ['lider', 'carregador'], telas: ['ler'], fn: acaoConferirLeitura },
+  registrarLancamento: { perfis: ['lider', 'carregador'], telas: ['ler'], fn: acaoRegistrarLancamento },
   minhasLeituras: { fn: acaoMinhasLeituras },
-  leiturasEquipe: { perfis: ['admin', 'lider'], fn: acaoLeiturasEquipe },
-  corrigirLeitura: { perfis: ['admin', 'lider'], fn: acaoCorrigirLeitura },
+  leiturasEquipe: { perfis: ['admin', 'lider'], telas: ['minhas', 'corrigir'], fn: acaoLeiturasEquipe },
+  corrigirLeitura: { perfis: ['admin', 'lider'], telas: ['corrigir'], fn: acaoCorrigirLeitura },
 
   // Painel
-  painelOpcoes: { perfis: ['admin', 'lider'], fn: acaoPainelOpcoes },
-  painelDados: { perfis: ['admin', 'lider'], fn: acaoPainelDados },
+  painelOpcoes: { perfis: ['admin', 'lider'], telas: T_PAINEL, fn: acaoPainelOpcoes },
+  painelDados: { perfis: ['admin', 'lider'], telas: T_PAINEL, fn: acaoPainelDados },
   lerConfig: { fn: () => ({ permitir_multiplas_equipes: permitirMultiplas() }) },
-  salvarConfig: { perfis: ['admin'], fn: acaoSalvarConfig },
-  existentes967: { perfis: ['admin'], fn: acaoExistentes967 },
-  importar967: { perfis: ['admin'], fn: acaoImportar967 },
+  salvarConfig: { perfis: ['admin'], telas: ['config'], fn: acaoSalvarConfig },
+  existentes967: { perfis: ['admin'], telas: ['importacoes'], fn: acaoExistentes967 },
+  importar967: { perfis: ['admin'], telas: ['importacoes'], fn: acaoImportar967 },
 
-  // Administração
-  adminListar: { perfis: ['admin'], fn: acaoAdminListar },
+  // Administração (contas: só o administrador)
+  adminListar: { perfis: ['admin'], telas: ['equipes', 'eq-hist'].concat(T_QUADRO), fn: acaoAdminListar },
   criarUsuario: { perfis: ['admin'], fn: acaoCriarUsuario },
   criarUsuariosEmLote: { perfis: ['admin'], fn: acaoCriarUsuariosEmLote },
   atualizarUsuario: { perfis: ['admin'], fn: acaoAtualizarUsuario },
-  salvarEquipe: { perfis: ['admin'], fn: acaoSalvarEquipe },
-  moverUsuario: { perfis: ['admin'], fn: acaoMoverUsuario },
-  removerUsuario: { perfis: ['admin'], fn: acaoRemoverUsuario },
-  desativarEquipe: { perfis: ['admin'], fn: acaoDesativarEquipe },
-  reativarEquipe: { perfis: ['admin'], fn: acaoReativarEquipe },
+  salvarEquipe: { perfis: ['admin'], telas: ['equipes'], fn: acaoSalvarEquipe },
+  moverUsuario: { perfis: ['admin'], telas: ['equipes', 'cfg'], fn: acaoMoverUsuario },
+  removerUsuario: { perfis: ['admin'], telas: ['equipes', 'cfg'], fn: acaoRemoverUsuario },
+  desativarEquipe: { perfis: ['admin'], telas: ['equipes'], fn: acaoDesativarEquipe },
+  reativarEquipe: { perfis: ['admin'], telas: ['equipes'], fn: acaoReativarEquipe },
+
+  // Acessos: contas e o que cada uma pode abrir (só o administrador)
+  acessosDados: { perfis: ['admin'], fn: acaoAcessosDados },
+  acessosSalvar: { perfis: ['admin'], fn: acaoAcessosSalvar },
 
   // Quadro da Expedição
-  expedicaoDados: { perfis: ['admin'], fn: acaoExpedicaoDados },
-  expedicaoImportar: { perfis: ['admin'], fn: acaoExpedicaoImportar },
-  expedicaoSalvar: { perfis: ['admin'], fn: acaoExpedicaoSalvar },
-  expedicaoSalvarColaborador: { perfis: ['admin'], fn: acaoExpedicaoSalvarColaborador },
-  expedicaoExcluirColaborador: { perfis: ['admin'], fn: acaoExpedicaoExcluirColaborador },
+  expedicaoDados: { perfis: ['admin'], telas: T_QUADRO, fn: acaoExpedicaoDados },
+  expedicaoImportar: { perfis: ['admin'], telas: ['cfg'], fn: acaoExpedicaoImportar },
+  expedicaoSalvar: { perfis: ['admin'], telas: T_QUADRO, fn: acaoExpedicaoSalvar },
+  expedicaoSalvarColaborador: { perfis: ['admin'], telas: ['cfg'], fn: acaoExpedicaoSalvarColaborador },
+  expedicaoExcluirColaborador: { perfis: ['admin'], telas: ['cfg'], fn: acaoExpedicaoExcluirColaborador },
   expedicaoVincularConta: { perfis: ['admin'], fn: acaoExpedicaoVincularConta },
-  expedicaoSalvarDia: { perfis: ['admin'], fn: acaoExpedicaoSalvarDia },
-  expedicaoLimparHistorico: { perfis: ['admin'], fn: acaoExpedicaoLimparHistorico },
+  expedicaoSalvarDia: { perfis: ['admin'], telas: ['att'], fn: acaoExpedicaoSalvarDia },
+  expedicaoLimparHistorico: { perfis: ['admin'], telas: ['hist'], fn: acaoExpedicaoLimparHistorico },
 
   // Painel de conferência
-  conferenciaDados: { perfis: ['admin'], fn: acaoConferenciaDados },
-  conferenciaSalvar: { perfis: ['admin'], fn: acaoConferenciaSalvar },
+  conferenciaDados: { perfis: ['admin'], telas: T_CONF, fn: acaoConferenciaDados },
+  conferenciaSalvar: { perfis: ['admin'], telas: T_CONF, fn: acaoConferenciaSalvar },
 };
 
 // =====================================================================
@@ -304,7 +314,7 @@ function hashSenha(senha, sal) {
 }
 
 function perfilPublico(u) {
-  return { id: u.id, login: u.login, nome: u.nome, perfil: u.perfil, ativo: sim(u.ativo) };
+  return { id: u.id, login: u.login, nome: u.nome, perfil: u.perfil, ativo: sim(u.ativo), telas: telasDe(u) };
 }
 
 function acaoLogin(d) {
@@ -335,7 +345,7 @@ function acaoLogin(d) {
   return { token: token, perfil: perfilPublico(u) };
 }
 
-function autenticar(token, perfis) {
+function autenticar(token, acao) {
   if (!token) throw new ErroApp('SESSAO_INVALIDA', 'Sessão expirada. Entre novamente.');
   const th = sha256(String(token));
   const cache = CacheService.getScriptCache();
@@ -351,9 +361,26 @@ function autenticar(token, perfis) {
     cache.remove('sessao:' + th);
     throw new ErroApp('USUARIO_INATIVO', 'Seu usuário foi desativado. Procure o administrador.');
   }
-  if (perfis && perfis.indexOf(u.perfil) < 0) throw new ErroApp('ACESSO_NEGADO', 'Você não tem permissão para esta ação.');
+  if (!podeUsar(u, acao)) throw new ErroApp('ACESSO_NEGADO', 'Você não tem permissão para esta ação.');
   u._tokenHash = th;
   return u;
+}
+
+/** Telas escolhidas para a conta na tela Acessos (null = padrão do perfil). */
+function telasDe(u) {
+  const t = String(u.telas || '').split(',').map((x) => x.trim()).filter(Boolean);
+  return t.length ? t : null;
+}
+
+/**
+ * Administrador: o que o perfil dele permite. Demais contas: se o administrador
+ * escolheu as telas, vale a escolha; se não, vale o perfil.
+ */
+function podeUsar(u, acao) {
+  if (!acao.perfis) return true;
+  const telas = u.perfil === 'admin' ? null : telasDe(u);
+  if (telas) return (acao.telas || []).some((t) => telas.indexOf(t) >= 0);
+  return acao.perfis.indexOf(u.perfil) >= 0;
 }
 
 function acaoSair(d, u) {
@@ -1247,6 +1274,88 @@ function acaoExpedicaoVincularConta(d) {
     c.usuario_id = u.id;
     atualizar('ExpColaboradores', c);
     return true;
+  });
+}
+
+// =====================================================================
+// ACESSOS: contas de acesso e telas liberadas para cada uma
+// =====================================================================
+
+/** Versão nova com coluna nova: escreve o cabeçalho que falta. */
+function garantirCabecalho(nome) {
+  const sh = aba(nome);
+  const cab = TABELAS[nome];
+  const atual = sh.getRange(1, 1, 1, cab.length).getValues()[0].map(texto);
+  if (atual.join('|') !== cab.join('|')) {
+    sh.getRange(1, 1, 1, cab.length).setNumberFormat('@').setValues([cab]).setFontWeight('bold');
+  }
+}
+
+function acaoAcessosDados() {
+  garantirCabecalho('Usuarios');
+  expLigarContas();
+  return {
+    pessoas: ler('ExpColaboradores').map((c) => ({
+      chapa: c.chapa, nome: c.nome, funcao: c.funcao, setor: c.setor, usuario_id: c.usuario_id || null,
+    })).sort((a, b) => a.nome.localeCompare(b.nome)),
+    contas: ler('Usuarios').map(perfilPublico).sort((a, b) => a.nome.localeCompare(b.nome)),
+  };
+}
+
+/** Lista de telas recebida do site → texto guardado (vazio = padrão do perfil). */
+function limparTelas(lista) {
+  if (lista === null) return '';
+  if (!Array.isArray(lista) || lista.length > 80) throw new ErroApp('DADOS_INVALIDOS', 'Lista de telas inválida.');
+  const ok = lista.map((t) => String(t)).filter((t) => /^[a-z0-9-]{1,30}$/.test(t));
+  if (!ok.length) throw new ErroApp('DADOS_INVALIDOS', 'Marque pelo menos uma tela ou use o padrão do perfil.');
+  return ok.filter((t, i) => ok.indexOf(t) === i).join(',');
+}
+
+/**
+ * Salva o acesso de uma pessoa (chapa) ou de uma conta sem colaborador (usuario_id).
+ * d = { chapa?, usuario_id?, ativo, login, senha, perfil, telas: [..] | null }
+ */
+function acaoAcessosSalvar(d, admin) {
+  garantirCabecalho('Usuarios');
+  return comTrava(() => {
+    let u = null;
+    if (d.chapa) {
+      const lista = ler('ExpColaboradores');
+      const c = lista.find((x) => x.chapa === texto(d.chapa));
+      if (!c) throw new ErroApp('NAO_ENCONTRADO', 'Colaborador não encontrado.');
+      expAplicarAcesso(c, { ativo: !!d.ativo, login: d.login, senha: d.senha, perfil: d.perfil }, admin);
+      atualizar('ExpColaboradores', c);
+      u = c.usuario_id ? ler('Usuarios').find((x) => x.id === c.usuario_id) : null;
+    } else {
+      u = ler('Usuarios').find((x) => x.id === d.usuario_id);
+      if (!u) throw new ErroApp('NAO_ENCONTRADO', 'Conta não encontrada.');
+      const proprio = u.id === admin.id;
+      if (d.perfil !== undefined) {
+        validarNomePerfil(u.nome, d.perfil);
+        if (proprio && d.perfil !== 'admin') throw new ErroApp('DADOS_INVALIDOS', 'Você não pode tirar o próprio perfil de administrador.');
+        u.perfil = d.perfil;
+      }
+      if (d.ativo !== undefined) {
+        if (proprio && !d.ativo) throw new ErroApp('DADOS_INVALIDOS', 'Você não pode bloquear o próprio acesso.');
+        u.ativo = d.ativo ? SIM : NAO;
+      }
+      let trocouSenha = false;
+      if (d.senha) {
+        validarSenha(d.senha);
+        u.sal = uuid();
+        u.senha_hash = hashSenha(String(d.senha), u.sal);
+        trocouSenha = true;
+      }
+      atualizar('Usuarios', u);
+      if (u.perfil === 'admin') tirarAdminDasEquipes(u, admin);
+      if (trocouSenha || !sim(u.ativo)) encerrarSessoes((s) => s.usuario_id === u.id && s.token_hash !== admin._tokenHash);
+      u = ler('Usuarios').find((x) => x.id === d.usuario_id);
+    }
+    if (u && d.telas !== undefined) {
+      u.telas = u.perfil === 'admin' ? '' : limparTelas(d.telas);
+      atualizar('Usuarios', u);
+    }
+    return u ? perfilPublico(u) : null;
   });
 }
 

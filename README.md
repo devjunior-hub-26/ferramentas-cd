@@ -96,9 +96,9 @@ Teste no computador com o `INICIAR-TESTE.bat`: entre com o login e a senha do pa
 ### 7. Primeiro uso
 
 1. Abra o site no computador e entre com o login de administrador.
-2. **Pessoas → Colaboradores e Acessos**: em cada pessoa, marque **Tem acesso à plataforma?** e defina usuário, senha e perfil.
+2. **Pessoas → Colaboradores**: cadastre as pessoas. Depois, em **Pessoas → Acessos**, toque em cada pessoa, marque **Tem acesso à plataforma?**, defina usuário, senha e perfil e, se quiser, escolha quais telas ela pode abrir.
 3. **Equipes**: crie as equipes, escolha o líder e adicione as pessoas.
-4. **Painel de Produtividade → Importar 967**: importe a planilha do Winthor.
+4. **Dados → Importações**: importe a planilha 967 do Winthor e os relatórios da conferência.
 5. No celular de um carregador: abra o endereço no Chrome (Android) ou Safari (iPhone), entre e use **Adicionar à tela inicial** para instalar.
 
 ### Atualizar o servidor (quando o `Codigo.gs` mudar)

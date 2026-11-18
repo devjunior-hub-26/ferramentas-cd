@@ -6,7 +6,8 @@ O login, as cores, o cabeçalho e o modo instalável já estão prontos. Uma fer
 
 Todas as ferramentas fazem parte do mesmo software. Antes de criar algo novo:
 
-- **Pessoas:** use o cadastro de **Colaboradores e Acessos** (aba `ExpColaboradores` da planilha, ligada pela chapa). Nenhuma ferramenta tem cadastro de pessoas próprio; filtre por setor ou função (ex.: a Conferência usa o setor `CONFERENCIA`).
+- **Pessoas:** use o cadastro de **Colaboradores** (aba `ExpColaboradores` da planilha, ligada pela chapa). Nenhuma ferramenta tem cadastro de pessoas próprio; filtre por setor ou função (ex.: a Conferência usa o setor `CONFERENCIA`).
+- **Acessos:** cada ação nova do servidor (`ACOES` em `apps-script/Codigo.gs`) declara em `telas` os ids do menu que a liberam. Assim, o administrador consegue liberar a tela nova para uma conta na tela **Acessos**, e o servidor recusa quem não tem a tela.
 - **Arquivos:** toda importação de relatório fica na tela **Importações** (`tools/importacoes/`), um campo por relatório, com prévia antes de gravar. A ferramenta só mostra os dados.
 - **Visual:** use `global.css` (cartões, tabelas, filtros fixos em vidro) e o menu do sistema; nada de menu ou login próprio.
 - **Dados:** tudo na planilha, pelas ações do `Codigo.gs`; nada só no navegador.

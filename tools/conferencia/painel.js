@@ -330,14 +330,14 @@ function abaPainel(){
 
 /* ====================== ABA CONFERENTES ====================== */
 function abaConferentes(){
-  /* A equipe vem de Colaboradores e Acessos (setor CONFERENCIA): aqui só os números */
+  /* A equipe vem de Colaboradores (setor CONFERENCIA): aqui só os números */
   var h = '<div class="card"><h2 class="disp">Equipe de conferência ('+S.conferentes.length+')</h2>'+
-    '<p class="ajuda" style="margin-bottom:0">A lista vem de <b>Colaboradores e Acessos</b>: todos do setor <b>CONFERENCIA</b>. '+
+    '<p class="ajuda" style="margin-bottom:0">A lista vem de <b>Colaboradores</b>: todos do setor <b>CONFERENCIA</b>. '+
     'Para incluir, renomear ou tirar alguém, altere lá. Aqui você corrige os números do mês e pode '+
     'desmarcar quem não deve entrar no ranking.</p></div>';
   if(!S.conferentes.length){
     h += '<div class="card"><div class="aviso neutro">Nenhum colaborador no setor CONFERENCIA. '+
-      'Cadastre em Colaboradores e Acessos.</div></div>';
+      'Cadastre em Colaboradores.</div></div>';
   }
 
   S.conferentes.forEach(function(c){
@@ -489,9 +489,13 @@ function blocoImportar(){
       }
       var foraEquipe = p.linhas.filter(function(l){ return !l.id; });
       if(foraEquipe.length){
-        h += '<div class="aviso atencao">Não estão no setor CONFERENCIA de <b>Colaboradores e Acessos</b> e ficam de fora: '+
-          esc(foraEquipe.map(function(l){ return l.nome+" ("+l.matricula+")"; }).join(", "))+
-          '. Cadastre lá e importe de novo para que entrem no painel.</div>';
+        h += S.conferentes.length
+          ? '<div class="aviso atencao">Não encontrei no setor CONFERENCIA de <b>Colaboradores</b> ('+S.conferentes.length+
+            ' pessoas) e ficam de fora: '+
+            esc(foraEquipe.map(function(l){ return l.nome+" ("+l.matricula+")"; }).join(", "))+
+            '. Confira se a chapa ou o nome no cadastro batem com o relatório e importe de novo.</div>'
+          : '<div class="aviso atencao">A lista de conferentes veio vazia: ninguém de <b>Colaboradores</b> está com o setor '+
+            '<b>CONFERENCIA</b>. Confira o setor no cadastro e abra esta tela de novo.</div>';
       }
     }
     if(p.modo==="reiniciar"){
@@ -1274,13 +1278,7 @@ function qualDaComp(comp){ return (S.qualidade||{})[comp||compAtual()] || null; 
 /* Só entram no relatório os conferentes que estão na aba Conferentes (ativos).
    Quem saiu da equipe continua no arquivo importado, mas não é exibido. */
 function conferenteAtivoDe(i){
-  var mat=String(i.matricula||"").trim(), ch=chaveNome(i.nome||"");
-  for(var k=0;k<S.conferentes.length;k++){
-    var c=S.conferentes[k]; if(!c.ativo) continue;
-    if(mat && String(c.matricula||"").trim()===mat) return c;
-    if(chaveNome(c.nome||"")===ch) return c;
-  }
-  return null;
+  return acharPessoa(S.conferentes.filter(function(c){ return c.ativo; }), i.matricula, i.nome||"");
 }
 /* Itens da competência, apenas dos conferentes ativos (usa o nome do cadastro) */
 function itensQualAtivos(q){
@@ -1766,7 +1764,7 @@ function potencialDe(chave){
   Object.keys(S.historico||{}).forEach(function(k){
     (S.historico[k].itens||[]).forEach(function(i){
       var ch=String(i.matricula||"").trim();
-      if(ch!==chave && chaveNome(i.nome||"")!==chave) return;
+      if(ch!==chave && !mesmoNumero(ch,chave) && chaveNome(i.nome||"")!==chave) return;
       var p=Number(i.pontos)||0;
       if(!melhor || p>melhor.pontos)
         melhor={comp:k, pontos:p, un:Number(i.un)||0, os:Number(i.os)||0};
@@ -1905,7 +1903,8 @@ function serieHistorico(chave, incluirAtual){
     var achou=null;
     itens.forEach(function(i){
       if(achou) return;
-      if(String(i.matricula||"").trim()===chave || chaveNome(i.nome)===chave) achou=i;
+      var m=String(i.matricula||"").trim();
+      if(m===chave || mesmoNumero(m,chave) || chaveNome(i.nome)===chave) achou=i;
     });
     return {comp:k, rotulo:mesCurto(k)+(atual?"*":""),
       pontos: achou?(Number(achou.pontos)||0):null,
@@ -2228,7 +2227,45 @@ function abaConfig(){
 /* ====================== IMPORTAÇÃO ====================== */
 function semAcento(s){ return String(s==null?"":s).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase(); }
 function chaveCol(s){ return semAcento(s).replace(/[^A-Z0-9]/g,""); }
-function chaveNome(s){ return semAcento(s).replace(/\s+/g," ").trim(); }
+function chaveNome(s){ return semAcento(s).replace(/[^A-Z ]/g," ").replace(/\s+/g," ").trim(); }
+
+/* Liga um nome/matrícula de relatório a uma pessoa da lista.
+   - número: ignora zeros à esquerda, ".0" do Excel e o prefixo "1000…" que o
+     Winthor coloca na matrícula (10003587 = chapa 3587);
+   - nome: igual, ou todas as palavras do nome mais curto presentes no mais longo
+     (com o mesmo primeiro nome) — só vale se apontar para uma pessoa só. */
+function chaveNum(v){
+  var s=String(v==null?"":v).trim().replace(/\.0+$/,"").replace(/\D/g,"");
+  return s.replace(/^0+/,"");
+}
+function mesmoNumero(a,b){
+  a=chaveNum(a); b=chaveNum(b);
+  if(!a||!b) return false;
+  if(a===b) return true;
+  var longo=a.length>b.length?a:b, curto=a.length>b.length?b:a;
+  if(curto.length<3 || longo.slice(-curto.length)!==curto) return false;
+  return /^10*$/.test(longo.slice(0,longo.length-curto.length));
+}
+var LIGACOES_NOME={DA:1,DE:1,DO:1,DAS:1,DOS:1,E:1};
+function palavrasNome(s){ return chaveNome(s).split(" ").filter(function(p){return p && !LIGACOES_NOME[p];}); }
+function nomeParecido(a,b){
+  var pa=palavrasNome(a), pb=palavrasNome(b);
+  if(!pa.length||!pb.length||pa[0]!==pb[0]) return false;
+  var curto=pa.length<=pb.length?pa:pb, longo=pa.length<=pb.length?pb:pa;
+  if(curto.length<2) return false;
+  return curto.every(function(p){ return longo.indexOf(p)>=0; });
+}
+function acharPessoa(lista, mat, nome){
+  var i, achou=[];
+  if(chaveNum(mat)){
+    for(i=0;i<lista.length;i++) if(mesmoNumero(lista[i].matricula, mat)) return lista[i];
+  }
+  var k=chaveNome(nome);
+  if(!k) return null;
+  for(i=0;i<lista.length;i++) if(chaveNome(lista[i].nome)===k) return lista[i];
+  for(i=0;i<lista.length;i++) if(nomeParecido(lista[i].nome, nome)) achou.push(lista[i]);
+  return achou.length===1 ? achou[0] : null;
+}
 function paraISO(v){
   if(v instanceof Date && !isNaN(v)){
     var p=function(n){return String(n).padStart(2,"0");};
@@ -2306,17 +2343,12 @@ function processarDados(dados,nomeArq){
     S.msg={tipo:"erro",texto:"Não encontrei as colunas NOME e PONTOS. Colunas lidas: "+cols.join(", ")};
     return render();
   }
-  var porMat={}, porNome={};
-  S.conferentes.forEach(function(c){
-    if(c.matricula) porMat[String(c.matricula).trim()]=c;
-    porNome[chaveNome(c.nome)]=c;
-  });
   var vistos={};
   var linhasPrev = dados.map(function(r){
     var nome=String(r[kNome]||"").trim(); if(!nome) return null;
-    var mat = kMat ? String(r[kMat]||"").trim() : "";
+    var mat = kMat ? String(r[kMat]==null?"":r[kMat]).trim().replace(/\.0+$/,"") : "";
     var pts = Number(String(r[kPts]).replace(",",".")) || 0;
-    var atual = (mat && porMat[mat]) || porNome[chaveNome(nome)] || null;
+    var atual = acharPessoa(S.conferentes, mat, nome);
     if(atual) vistos[atual.id]=true;
     return {
       id: atual?atual.id:null,
@@ -2490,7 +2522,7 @@ function gravarImportacao(){
     });
   }
 
-  /* quem não está em Colaboradores e Acessos não entra: o cadastro de pessoas é um só */
+  /* quem não está em Colaboradores não entra: o cadastro de pessoas é um só */
   var novos = p.linhas.filter(function(l){ return !l.id; });
   S.config.ultimaImportacao=new Date().toISOString().slice(0,10);
   S.config.arquivo=p.arquivo;
@@ -2502,7 +2534,7 @@ function gravarImportacao(){
   var acao = modo==="reiniciar" ? ("Novo mês ("+nomeMes(p.competencia)+"): pontuação reiniciada")
            : modo==="somar" ? "Pontuação somada ao mês" : "Pontuação substituída";
   S.msg={tipo:"ok",texto:acao+" — "+qtdAtu+" conferentes"+
-    (novos.length ? " ("+novos.length+" fora de Colaboradores e Acessos ficaram de fora)" : "")+
+    (novos.length ? " ("+novos.length+" fora de Colaboradores ficaram de fora)" : "")+
     (modo==="reiniciar" && p.zerarErros ? ", erros zerados" : "")+"."};
   S.previa=null;
   salvar(); render();
@@ -2608,18 +2640,13 @@ window.addEventListener("hashchange", function(){
   if(k!==S.aba){ S.aba=k; S.msg=null; render(); window.scrollTo(0,0); }
 });
 
-/* A equipe é quem está no setor CONFERENCIA de Colaboradores e Acessos.
+/* A equipe é quem está no setor CONFERENCIA de Colaboradores.
    Os números de cada um (pontos, meta, erros...) ficam guardados no painel e são
    ligados pela chapa (= matrícula dos relatórios) ou, se não bater, pelo nome. */
 function montarEquipe(equipe, guardados){
-  var porMat={}, porNome={};
-  guardados.forEach(function(c){
-    if(c.matricula) porMat[String(c.matricula).trim()]=c;
-    porNome[chaveNome(c.nome||"")]=c;
-  });
   return equipe.map(function(p){
-    var chapa=String(p.chapa||"").trim();
-    var g = porMat[chapa] || porNome[chaveNome(p.nome||"")] || {};
+    var chapa=String(p.chapa==null?"":p.chapa).trim().replace(/\.0+$/,"");
+    var g = acharPessoa(guardados, chapa, p.nome||"") || {};
     return Object.assign({pontos:0, os:0, un:0, meta:0, ativo:true, obs:"", pontosAnt:null, erros:0, sobras:0, cargas:0},
       g, {id:"c"+chapa, matricula:chapa, nome:String(p.nome||"").toUpperCase()});
   }).sort(function(a,b){ return a.nome.localeCompare(b.nome); });

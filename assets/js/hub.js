@@ -2,7 +2,7 @@
 import { configurado } from './config.js';
 import { entrar, sair, usuarioAtual, PERFIS, BASE } from './auth.js';
 import { tokenSalvo } from './api.js';
-import { menuDoPerfil } from './tools.js';
+import { menuDoUsuario } from './tools.js';
 import { icone } from './icones.js';
 import { $, esc } from './ui.js';
 
@@ -65,7 +65,7 @@ $('#menu-fundo').addEventListener('click', () => $('#tela-app').classList.remove
 function montarMenu(perfil) {
   $('#app-nome').textContent = perfil.nome;
   $('#app-perfil').textContent = PERFIS[perfil.perfil] || perfil.perfil;
-  const grupos = menuDoPerfil(perfil.perfil);
+  const grupos = menuDoUsuario(perfil);
   itens = grupos.flatMap((g) => g.itens.map((i) => ({ ...i, grupo: g.grupo })));
   $('#menu-itens').innerHTML = grupos.map((g) => `<div class="menu-grupo">${esc(g.grupo)}</div>${g.itens.map((i) => (
     `<button class="menu-item" data-item="${esc(i.id)}" title="${esc(i.nome)}">${icone(i.icone)}<span>${esc(i.nome)}</span></button>`)).join('')}`).join('')

@@ -4,6 +4,7 @@
 // fazer é o servidor (apps-script/Codigo.gs), não esta página.
 import { configurado } from './config.js';
 import { api, ErroApi, tokenSalvo, salvarToken, apagarToken } from './api.js';
+import { MENU, itemLiberado } from './tools.js';
 
 export { api, ErroApi };
 
@@ -119,11 +120,24 @@ export async function usuarioAtual(aoRecusar) {
 export async function exigirLogin(perfisPermitidos) {
   const voltar = () => { location.href = urlHub(); };
   const perfil = await usuarioAtual(voltar);
-  if (!perfil || (perfisPermitidos && !perfisPermitidos.includes(perfil.perfil))) {
+  if (!perfil || !podeAbrirEstaPagina(perfil, perfisPermitidos)) {
     voltar();
     return new Promise(() => {}); // interrompe a página enquanto redireciona
   }
   return perfil;
+}
+
+/**
+ * Conta com telas escolhidas na tela Acessos: entra se algum item liberado
+ * aponta para esta página. Sem escolha (ou administrador): vale o perfil.
+ */
+function podeAbrirEstaPagina(perfil, perfisPermitidos) {
+  if (perfil.perfil === 'admin' || !perfil.telas?.length) {
+    return !perfisPermitidos || perfisPermitidos.includes(perfil.perfil);
+  }
+  const pagina = (url) => { const p = new URL(url, BASE).pathname; return p.endsWith('/') ? p + 'index.html' : p; };
+  const aqui = pagina(location.href);
+  return MENU.some((g) => g.itens.some((i) => itemLiberado(i, perfil) && pagina(i.link) === aqui));
 }
 
 /** Mensagem em português para mostrar ao usuário. */

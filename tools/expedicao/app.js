@@ -43,7 +43,6 @@ let historico = [];
 let contas = []; // contas de acesso sem colaborador ligado
 let equipes = []; // equipes ativas
 let vinculos = {}; // conta → equipe atual
-let editandoConta = null;
 let abaAtual = 'org';
 let abasProntas = false;
 let filtroOrg = 'all', filtroAtt = 'all', filtroFerias = 'all', filtroFeriasMes = 'all', filtroMotivo = 'all';
@@ -782,14 +781,6 @@ function renderHierarquia() {
     </div></td>
   </tr>`).join('') || '<tr><td colspan="10" class="vazio">Nenhum colaborador encontrado.</td></tr>';
 
-  $('#contas-caixa').hidden = !contas.length;
-  $('#contas-corpo').innerHTML = contas.map((c) => `<tr>
-    <td><b>${esc(c.nome)}</b></td>
-    <td>${esc(c.login)}</td>
-    <td>${PERFIS[c.perfil] || esc(c.perfil)}</td>
-    <td>${c.ativo ? '<span class="selo sucesso">Ativa</span>' : '<span class="selo erro">Bloqueada</span>'}</td>
-    <td><div class="acoes"><button class="btn pequeno secundario" data-acao="editarConta" data-id="${esc(c.id)}">${c.perfil === 'admin' ? 'Editar' : 'Editar ou vincular'}</button></div></td>
-  </tr>`).join('');
 }
 
 function seloAcesso(u) {
@@ -824,64 +815,6 @@ async function trocarEquipe(sel) {
   renderHierarquia();
 }
 
-const perfilDaFuncao = (f) => (/l[ií]der|encarregad|supervis|coordenad/i.test(f || '') ? 'lider' : 'carregador');
-
-function mostrarAcesso() {
-  const ligado = $('#f-acesso').checked;
-  $('#bloco-acesso').hidden = !ligado;
-  $('#f-login').required = ligado;
-  $('#f-equipe-caixa').hidden = $('#f-perfil').value === 'admin';
-  // Senha obrigatória só quando a pessoa ainda não tem conta
-  $('#f-senha').required = ligado && !colaboradores.find((x) => x.Chapa === editando)?.Usuario;
-}
-
-// Marcou "tem acesso" em quem ainda não tem conta: sugere a chapa
-function sugerirAcesso() {
-  const e = colaboradores.find((x) => x.Chapa === editando);
-  if ($('#f-acesso').checked && !e?.Usuario) {
-    const chapa = $('#f-chapa').value;
-    if (!$('#f-login').value) $('#f-login').value = chapa;
-    if (!$('#f-senha').value && chapa.length >= 6) $('#f-senha').value = chapa;
-    $('#f-perfil').value = perfilDaFuncao($('#f-funcao').value);
-  }
-  mostrarAcesso();
-}
-
-function abrirConta(id) {
-  const c = contas.find((x) => x.id === id);
-  if (!c) return;
-  editandoConta = c;
-  $('#form-conta').reset();
-  $('#c-nome').value = c.nome;
-  $('#c-login').value = c.login;
-  $('#c-perfil').value = c.perfil;
-  $('#c-ativo').checked = c.ativo;
-  $('#c-vinculo-caixa').hidden = c.perfil === 'admin';
-  $('#c-vinculo').innerHTML = '<option value="">Não vincular agora</option>'
-    + colaboradores.filter((e) => !e.Usuario).sort((a, b) => a.Nome.localeCompare(b.Nome))
-      .map((e) => `<option value="${e.Chapa}">${esc(e.Nome)} (${e.Chapa})</option>`).join('');
-  $('#dlg-conta').showModal();
-}
-
-async function salvarConta() {
-  const c = editandoConta;
-  const corpo = { id: c.id, nome: $('#c-nome').value.trim(), perfil: $('#c-perfil').value, ativo: $('#c-ativo').checked };
-  if ($('#c-senha').value) corpo.senha = $('#c-senha').value;
-  const botao = $('#form-conta [type=submit]');
-  botao.disabled = true;
-  botao.textContent = 'Salvando…';
-  let ok = await noServidor('atualizarUsuario', corpo);
-  const chapa = $('#c-vinculo').value;
-  if (ok && chapa && c.perfil !== 'admin') ok = await noServidor('expedicaoVincularConta', { usuario_id: c.id, chapa });
-  botao.disabled = false;
-  botao.textContent = 'Salvar';
-  if (!ok) return;
-  $('#dlg-conta').close();
-  toast('Conta atualizada.', 'sucesso');
-  await carregarDoServidor();
-  atualizarTela();
-}
-
 function garantirOpcao(select, valor) {
   if (valor && ![...select.options].some((o) => o.value === valor)) select.add(new Option(valor, valor));
   select.value = valor || '';
@@ -902,14 +835,6 @@ function abrirColaborador(chapa) {
     garantirOpcao($('#f-setor'), e.Setor);
     $('#f-ferias').value = e.FeriasMes === null ? '' : e.FeriasMes;
   }
-  const u = e?.Usuario;
-  $('#f-acesso').checked = !!u?.ativo;
-  $('#f-login').value = u?.login || '';
-  $('#f-perfil').value = u?.perfil || 'carregador';
-  $('#f-senha-rotulo').textContent = u ? 'Nova senha (opcional)' : 'Senha *';
-  $('#f-senha-ajuda').textContent = u ? 'Deixe em branco para manter a senha atual.' : 'Mínimo 6 caracteres. Informe à pessoa.';
-  $('#f-equipe').innerHTML = opcoesEquipe(u && vinculos[u.id]);
-  mostrarAcesso();
   $('#dlg-colaborador').showModal();
 }
 
@@ -929,12 +854,8 @@ async function salvarColaborador() {
   const botao = $('#form-colaborador [type=submit]');
   botao.disabled = true;
   botao.textContent = 'Salvando…';
-  const acesso = { ativo: $('#f-acesso').checked, login: $('#f-login').value, senha: $('#f-senha').value, perfil: $('#f-perfil').value };
-  const salvo = await noServidor('expedicaoSalvarColaborador', { Chapa: chapa, novo, ...dados, acesso });
-  // A equipe só vale para quem tem acesso ativo e não é administrador
-  const u = salvo?.usuario;
-  const equipeDesejada = $('#f-equipe').value;
-  if (u?.ativo && u.perfil !== 'admin' && equipeDesejada !== (vinculos[u.id] || '')) await gravarEquipe(u.id, equipeDesejada);
+  // Login, senha e telas liberadas ficam na tela Acessos
+  const salvo = await noServidor('expedicaoSalvarColaborador', { Chapa: chapa, novo, ...dados });
   botao.disabled = false;
   botao.textContent = 'Salvar';
   if (!salvo) return;
@@ -950,7 +871,7 @@ async function salvarColaborador() {
   $('#dlg-colaborador').close();
   guardarCopia();
   atualizarTela();
-  carregarDoServidor().then(atualizarTela); // atualiza equipe e contas sem colaborador
+  carregarDoServidor().then(atualizarTela); // atualiza a equipe
 }
 
 async function excluirColaborador(chapa) {
@@ -1109,7 +1030,6 @@ const ACOES = {
     $('#cfg-ordem').value = col;
     renderHierarquia();
   },
-  editarConta: (el) => abrirConta(el.dataset.id),
   novoColaborador: () => abrirColaborador(null),
   editarColaborador: (el) => abrirColaborador(Number(el.dataset.chapa)),
   excluirColaborador: (el) => excluirColaborador(Number(el.dataset.chapa)),
@@ -1133,9 +1053,6 @@ $('#form-colaborador').addEventListener('submit', (ev) => { ev.preventDefault();
 $('#cfg-busca').addEventListener('input', renderHierarquia);
 $('#cfg-ordem').addEventListener('change', (ev) => { colOrdem = ev.target.value; ordemAsc = true; renderHierarquia(); });
 $('#rel-busca').addEventListener('input', renderRelatorio);
-$('#form-conta').addEventListener('submit', (ev) => { ev.preventDefault(); salvarConta(); });
-$('#f-acesso').addEventListener('change', sugerirAcesso);
-$('#f-perfil').addEventListener('change', mostrarAcesso);
 $('#cfg-corpo').addEventListener('change', (ev) => { if (ev.target.matches('.sel-equipe')) trocarEquipe(ev.target); });
 
 // Filtros fixos no topo

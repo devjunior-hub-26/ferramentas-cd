@@ -9,6 +9,11 @@
 //  link     caminho da página a partir da raiz do site
 //  aba      seção da página que o item abre (data-aba)
 //  perfis   perfis que veem o item: 'admin', 'lider', 'carregador'
+//  soAdmin  true = só o administrador, nunca liberado na tela Acessos
+//
+//  Na tela Acessos o administrador pode escolher, conta por conta, quais
+//  itens cada pessoa vê; sem escolha, vale "perfis". O servidor confere de
+//  novo (campo "telas" das ações em apps-script/Codigo.gs).
 // =========================================================
 const OPERA = ['lider', 'carregador'];
 const GESTAO = ['admin', 'lider'];
@@ -19,6 +24,7 @@ const QUADRO = 'tools/expedicao/';
 const EQUIPES = 'tools/admin/';
 const CONF = 'tools/conferencia/';
 const IMPORTACOES = 'tools/importacoes/';
+const ACESSOS = 'tools/acessos/';
 
 export const MENU = [
   { grupo: 'Operação', itens: [
@@ -26,7 +32,7 @@ export const MENU = [
     { id: 'minhas', nome: 'Leituras da equipe', icone: 'prancheta', link: QR, aba: 'minhas', perfis: OPERA },
     { id: 'corrigir', nome: 'Corrigir leituras', icone: 'ferramenta', link: QR, aba: 'equipe', perfis: ['lider'] },
   ] },
-  { grupo: 'Produtividade', itens: [
+  { grupo: 'Expedição', itens: [
     { id: 'prod', nome: 'Produtividade', icone: 'grafico', link: PAINEL, aba: 'prod', perfis: GESTAO },
     { id: 'lanc', nome: 'Lançamentos', icone: 'lista', link: PAINEL, aba: 'lanc', perfis: GESTAO },
     { id: 'carr', nome: 'Carregamentos', icone: 'caixa', link: PAINEL, aba: 'carr', perfis: GESTAO },
@@ -39,7 +45,8 @@ export const MENU = [
     { id: 'att', nome: 'Chamada', icone: 'prancheta', link: QUADRO, aba: 'att', perfis: ADMIN },
     { id: 'hist', nome: 'Histórico de chamadas', icone: 'relogio', link: QUADRO, aba: 'hist', perfis: ADMIN },
     { id: 'ferias', nome: 'Férias', icone: 'calendario', link: QUADRO, aba: 'ferias', perfis: ADMIN },
-    { id: 'cfg', nome: 'Colaboradores e Acessos', icone: 'usuarios', link: QUADRO, aba: 'cfg', perfis: ADMIN },
+    { id: 'cfg', nome: 'Colaboradores', icone: 'usuarios', link: QUADRO, aba: 'cfg', perfis: ADMIN },
+    { id: 'acessos', nome: 'Acessos', icone: 'cadeado', link: ACESSOS, aba: 'acessos', perfis: ADMIN, soAdmin: true },
     { id: 'equipes', nome: 'Equipes', icone: 'equipe', link: EQUIPES, aba: 'equipes', perfis: ADMIN },
     { id: 'eq-hist', nome: 'Histórico de equipes', icone: 'relogio', link: EQUIPES, aba: 'historico', perfis: ADMIN },
   ] },
@@ -63,5 +70,17 @@ export const MENU = [
 /** Grupos do menu só com os itens que o perfil pode usar. */
 export function menuDoPerfil(perfil) {
   return MENU.map((g) => ({ grupo: g.grupo, itens: g.itens.filter((i) => i.perfis.includes(perfil)) }))
+    .filter((g) => g.itens.length);
+}
+
+/** Itens que a conta pode abrir: a escolha da tela Acessos ou, sem ela, o perfil. */
+export function itemLiberado(item, usuario) {
+  if (usuario.perfil === 'admin' || !usuario.telas?.length) return item.perfis.includes(usuario.perfil);
+  return !item.soAdmin && usuario.telas.includes(item.id);
+}
+
+/** Menu da conta logada. */
+export function menuDoUsuario(usuario) {
+  return MENU.map((g) => ({ grupo: g.grupo, itens: g.itens.filter((i) => itemLiberado(i, usuario)) }))
     .filter((g) => g.itens.length);
 }
