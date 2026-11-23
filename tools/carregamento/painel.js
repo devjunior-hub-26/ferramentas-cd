@@ -17,6 +17,17 @@ $$('[data-admin]').forEach((el) => (el.hidden = !ehAdmin));
 let abaAtual = 'prod';
 let resultado = null; // dados calculados do último filtro
 
+// Regra de pontos (Configurações): toda a equipe recebe o peso dos carregamentos que lançou.
+// unidades = inteiro(peso ÷ kg por unidade) · pontos = inteiro(unidades × pontos por unidade)
+// valor = pontos × valor do ponto. Mesmo cálculo do SQL do auxiliar de embarque, sem retrabalho.
+let regra = { prod_kg_unidade: 5000, prod_pontos_unidade: 1.2, prod_valor_ponto: 0 };
+const dinheiro = (v) => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+function pontosDe(peso) {
+  const unidades = Math.floor((Number(peso) || 0) / regra.prod_kg_unidade + 1e-9);
+  const pontos = Math.floor(unidades * regra.prod_pontos_unidade + 1e-9);
+  return { unidades, pontos, valor: Math.round(pontos * regra.prod_valor_ponto * 100) / 100 };
+}
+
 // ---------------------------------------------------------------
 // Filtros
 // ---------------------------------------------------------------
@@ -144,7 +155,10 @@ async function calcular(f) {
   };
   for (const x of lancamentos) { const e = equipe(x.equipe_id, x.equipe_nome); e.lancamentos++; e.tempo += x.tempo; }
   for (const x of carregamentos) { const e = equipe(x.equipe_id, x.equipe); e.carregs.add(x.carregamento); e.leituras += x.qtd; if (!x.na967) e.sem967++; }
-  const porEquipe = [...mapaEq.values()].map((e) => ({ ...e, carregamentos: e.carregs.size, peso: pesoTotal(e.carregs) }))
+  const porEquipe = [...mapaEq.values()].map((e) => {
+    const peso = pesoTotal(e.carregs);
+    return { ...e, carregamentos: e.carregs.size, peso, ...pontosDe(peso) };
+  })
     .sort((a, b) => b.lancamentos - a.lancamentos || b.carregamentos - a.carregamentos);
 
   // Produtividade por usuário: o que a equipe lançou conta para quem estava nela
@@ -169,9 +183,10 @@ async function calcular(f) {
   for (const x of lancamentos) {
     for (const [id, p] of pessoasNaHora(x, x.salvo_em)) { const u = usuario(id, p); u.lancamentos++; u.tempo += x.tempo; }
   }
-  const porUsuario = [...mapaUs.values()].filter((u) => !f.usuario || u.id === f.usuario).map((u) => ({
-    ...u, equipes: [...u.equipes].join(', '), carregamentos: u.carregs.size, peso: pesoTotal(u.carregs),
-  })).sort((a, b) => b.lancamentos - a.lancamentos || b.leituras - a.leituras);
+  const porUsuario = [...mapaUs.values()].filter((u) => !f.usuario || u.id === f.usuario).map((u) => {
+    const peso = pesoTotal(u.carregs);
+    return { ...u, equipes: [...u.equipes].join(', '), carregamentos: u.carregs.size, peso, ...pontosDe(peso) };
+  }).sort((a, b) => b.pontos - a.pontos || b.peso - a.peso || b.lancamentos - a.lancamentos);
 
   return {
     filtros: f, leituras, c967, lancamentos, carregamentos, porEquipe, porUsuario, naoLancados,
@@ -198,17 +213,21 @@ function renderizar() {
     ['Peso total (kg)', numero(r.pesoTotal)],
     ['Equipes', numero(r.porEquipe.length)],
     ['Tempo médio / lançamento', medio(tempoTotal, r.lancamentos.length)],
+    ['Pontos (soma das pessoas)', numero(r.porUsuario.reduce((s, u) => s + u.pontos, 0))],
+    ['Valor a pagar', dinheiro(r.porUsuario.reduce((s, u) => s + u.valor, 0))],
   ].map(([k, v]) => `<div class="kpi"><div class="rotulo">${k}</div><div class="valor">${v}</div></div>`).join('');
 
   $('#tb-equipes').innerHTML = r.porEquipe.length ? r.porEquipe.map((e) => `<tr>
     <td><b>${esc(e.equipe)}</b></td><td class="num">${e.lancamentos}</td><td class="num">${e.carregamentos}</td><td class="num">${numero(e.peso)}</td>
     <td class="num">${e.leituras}</td><td class="num">${duracao(e.tempo)}</td><td class="num">${medio(e.tempo, e.lancamentos)}</td>
-    <td class="num">${e.sem967 ? `<span class="selo alerta">${e.sem967}</span>` : '0'}</td></tr>`).join('') : vazio(8);
+    <td class="num">${e.sem967 ? `<span class="selo alerta">${e.sem967}</span>` : '0'}</td>
+    <td class="num"><b>${numero(e.pontos)}</b></td><td class="num">${dinheiro(e.valor)}</td></tr>`).join('') : vazio(10);
 
   $('#tb-usuarios').innerHTML = r.porUsuario.length ? r.porUsuario.map((u) => `<tr>
     <td><b>${esc(u.usuario)}</b></td><td>${esc(u.equipes)}</td><td class="num">${u.lancamentos}</td><td class="num">${u.carregamentos}</td>
-    <td class="num">${numero(u.peso)}</td><td class="num">${u.leituras}</td><td class="num">${duracao(u.tempo)}</td>
-    <td class="num">${medio(u.tempo, u.lancamentos)}</td></tr>`).join('') : vazio(8);
+    <td class="num">${numero(u.peso)}</td><td class="num">${numero(u.unidades)}</td><td class="num"><b>${numero(u.pontos)}</b></td>
+    <td class="num">${dinheiro(u.valor)}</td><td class="num">${u.leituras}</td><td class="num">${duracao(u.tempo)}</td>
+    <td class="num">${medio(u.tempo, u.lancamentos)}</td></tr>`).join('') : vazio(11);
 
   $('#tb-lancamentos').innerHTML = r.lancamentos.length ? r.lancamentos.slice(0, LIMITE_TELA).map((x) => `<tr>
     <td>${dataHora(x.salvo_em)}</td><td>${esc(x.equipe_nome)}</td><td>${esc(x.usuario_nome)}</td>
@@ -272,10 +291,11 @@ $('#btn-exportar').addEventListener('click', () => {
   aba('Prod. Equipes', r.porEquipe.map((e) => ({
     'Equipe': e.equipe, 'Lançamentos': e.lancamentos, 'Carregamentos': e.carregamentos, 'Peso total (kg)': e.peso, 'Leituras': e.leituras,
     'Tempo total (min)': min(e.tempo), 'Tempo médio por lançamento (min)': minMedio(e.tempo, e.lancamentos), 'Sem 967': e.sem967,
+    'Pontos por pessoa': e.pontos, 'Valor por pessoa (R$)': e.valor,
   })));
   aba('Prod. Usuários', r.porUsuario.map((u) => ({
     'Usuário': u.usuario, 'Login': u.login, 'Equipe(s)': u.equipes, 'Lançamentos': u.lancamentos, 'Carregamentos': u.carregamentos,
-    'Peso (kg)': u.peso, 'Leituras': u.leituras, 'Tempo total (min)': min(u.tempo), 'Tempo médio por lançamento (min)': minMedio(u.tempo, u.lancamentos),
+    'Peso (kg)': u.peso, [`Ton. embarque (÷${regra.prod_kg_unidade} kg)`]: u.unidades, 'Pontos': u.pontos, 'Valor (R$)': u.valor, 'Leituras': u.leituras, 'Tempo total (min)': min(u.tempo), 'Tempo médio por lançamento (min)': minMedio(u.tempo, u.lancamentos),
   })));
   aba('Leituras', r.leituras.map((l) => ({
     'Data/hora': dt(l.lido_em), 'Carregamento': l.carregamento, 'Box': l.box, 'Transação': l.transacao,
@@ -293,14 +313,41 @@ $('#btn-exportar').addEventListener('click', () => {
 // ---------------------------------------------------------------
 // Configurações (Admin)
 // ---------------------------------------------------------------
-async function carregarConfig() {
-  const cfg = await api('lerConfig');
+function aplicarConfig(cfg) {
+  Object.keys(regra).forEach((k) => { if (cfg[k] !== undefined) regra[k] = Number(cfg[k]); });
   $('#cfg-multiplas').checked = cfg.permitir_multiplas_equipes === true;
+  $('#cfg-kg').value = regra.prod_kg_unidade;
+  $('#cfg-pontos').value = String(regra.prod_pontos_unidade).replace('.', ',');
+  $('#cfg-valor').value = String(regra.prod_valor_ponto).replace('.', ',');
+  explicarRegra();
 }
+function explicarRegra() {
+  const kg = Number($('#cfg-kg').value.replace(',', '.')) || 0;
+  const pts = Number($('#cfg-pontos').value.replace(',', '.')) || 0;
+  const vp = Number($('#cfg-valor').value.replace(',', '.')) || 0;
+  const ex = 37500;
+  const un = kg > 0 ? Math.floor(ex / kg + 1e-9) : 0;
+  const p = Math.floor(un * pts + 1e-9);
+  $('#cfg-exemplo').textContent = `Exemplo: equipe com ${numero(ex)} kg no período → ${un} unidade(s) de ${numero(kg)} kg → `
+    + `${p} ponto(s) → ${dinheiro(p * vp)} para cada pessoa da equipe.`;
+}
+async function carregarConfig() {
+  aplicarConfig(await api('lerConfig'));
+}
+['#cfg-kg', '#cfg-pontos', '#cfg-valor'].forEach((s) => $(s).addEventListener('input', explicarRegra));
 $('#cfg-salvar').addEventListener('click', async () => {
   try {
-    await api('salvarConfig', { permitir_multiplas_equipes: $('#cfg-multiplas').checked });
+    aplicarConfig(await api('salvarConfig', { permitir_multiplas_equipes: $('#cfg-multiplas').checked }));
     toast('Configuração salva.', 'sucesso');
+  } catch (e) { toast(mensagemErro(e), 'erro'); }
+});
+$('#cfg-salvar-pontos').addEventListener('click', async () => {
+  try {
+    aplicarConfig(await api('salvarConfig', {
+      prod_kg_unidade: $('#cfg-kg').value, prod_pontos_unidade: $('#cfg-pontos').value, prod_valor_ponto: $('#cfg-valor').value,
+    }));
+    toast('Regra de pontos salva.', 'sucesso');
+    if (resultado) $('#filtros').requestSubmit();
   } catch (e) { toast(mensagemErro(e), 'erro'); }
 });
 
@@ -314,7 +361,6 @@ iniciarAbas($('#abas'), (id) => {
   if (resultado && !resultado.leituras.length) setStatus('Nenhuma leitura encontrada para esses filtros.');
 });
 await carregarOpcoesFiltro().catch((e) => toast(mensagemErro(e), 'erro'));
-if (ehAdmin) {
-  carregarConfig().catch((e) => toast(mensagemErro(e), 'erro'));
-}
+// A regra de pontos vale para todos que veem a produtividade (o líder também)
+await carregarConfig().catch((e) => toast(mensagemErro(e), 'erro'));
 $('#filtros').requestSubmit();

@@ -23,7 +23,7 @@ const LOGIN_INICIAL_ADMIN = 'TROQUE-ESTE-LOGIN';
 const SENHA_INICIAL_ADMIN = 'TROQUE-ESTA-SENHA';
 
 // Mostrada no rodapé do app. Aumente sempre que este arquivo mudar.
-const VERSAO_SERVIDOR = 'v3.4.0';
+const VERSAO_SERVIDOR = 'v3.5.0';
 
 const DIAS_SESSAO = 60;         // por quanto tempo o celular fica logado
 const MAX_TENTATIVAS_LOGIN = 5;  // erros seguidos antes de bloquear por 5 minutos
@@ -113,7 +113,7 @@ const ACOES = {
   // Painel
   painelOpcoes: { perfis: ['admin', 'lider'], telas: T_PAINEL, fn: acaoPainelOpcoes },
   painelDados: { perfis: ['admin', 'lider'], telas: T_PAINEL, fn: acaoPainelDados },
-  lerConfig: { fn: () => ({ permitir_multiplas_equipes: permitirMultiplas() }) },
+  lerConfig: { fn: () => Object.assign({ permitir_multiplas_equipes: permitirMultiplas() }, regraPontos()) },
   salvarConfig: { perfis: ['admin'], telas: ['config'], fn: acaoSalvarConfig },
   existentes967: { perfis: ['admin'], telas: ['importacoes'], fn: acaoExistentes967 },
   importar967: { perfis: ['admin'], telas: ['importacoes'], fn: acaoImportar967 },
@@ -774,12 +774,41 @@ function acaoPainelDados(d, u) {
   };
 }
 
+// Pontos da Expedição (mesma regra do SQL do auxiliar de embarque, sem retrabalho):
+// unidades = parte inteira de (peso / kg por unidade); pontos = parte inteira de
+// (unidades × pontos por unidade); valor = pontos × valor do ponto.
+const REGRA_PONTOS = { prod_kg_unidade: 5000, prod_pontos_unidade: 1.2, prod_valor_ponto: 0 };
+
+function regraPontos() {
+  const cfg = {};
+  ler('Config').forEach((c) => { cfg[c.chave] = c.valor; });
+  const r = {};
+  Object.keys(REGRA_PONTOS).forEach((k) => {
+    const v = Number(cfg[k]);
+    r[k] = cfg[k] !== undefined && cfg[k] !== '' && isFinite(v) ? v : REGRA_PONTOS[k];
+  });
+  return r;
+}
+
+function gravarConfig(chave, valor) {
+  const c = ler('Config').find((x) => x.chave === chave);
+  if (c) { c.valor = valor; atualizar('Config', c); } else inserir('Config', [{ chave: chave, valor: valor }]);
+}
+
+/** Grava só o que veio: regra de leitura e/ou regra de pontos. */
 function acaoSalvarConfig(d) {
+  const numeros = {};
+  Object.keys(REGRA_PONTOS).forEach((k) => {
+    if (d[k] === undefined) return;
+    const v = Number(String(d[k]).replace(',', '.'));
+    const minimo = k === 'prod_valor_ponto' ? 0 : 0.0001;
+    if (!isFinite(v) || v < minimo || v > 1e9) throw new ErroApp('DADOS_INVALIDOS', 'Valor inválido na regra de pontos.');
+    numeros[k] = String(v);
+  });
   return comTrava(() => {
-    const valor = d.permitir_multiplas_equipes ? 'true' : 'false';
-    const c = ler('Config').find((x) => x.chave === 'permitir_multiplas_equipes');
-    if (c) { c.valor = valor; atualizar('Config', c); } else inserir('Config', [{ chave: 'permitir_multiplas_equipes', valor: valor }]);
-    return true;
+    if (d.permitir_multiplas_equipes !== undefined) gravarConfig('permitir_multiplas_equipes', d.permitir_multiplas_equipes ? 'true' : 'false');
+    Object.keys(numeros).forEach((k) => gravarConfig(k, numeros[k]));
+    return Object.assign({ permitir_multiplas_equipes: permitirMultiplas() }, regraPontos());
   });
 }
 

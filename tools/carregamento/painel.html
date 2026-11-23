@@ -51,12 +51,12 @@
       <div class="kpis" id="kpis"></div>
       <h2>Por equipe</h2>
       <div class="tabela-wrap"><table class="tabela">
-        <thead><tr><th>Equipe</th><th class="num">Lançamentos</th><th class="num">Carregamentos</th><th class="num">Peso total (kg)</th><th class="num">Leituras</th><th class="num">Tempo total</th><th class="num">Tempo médio / lançamento</th><th class="num">Sem 967</th></tr></thead>
+        <thead><tr><th>Equipe</th><th class="num">Lançamentos</th><th class="num">Carregamentos</th><th class="num">Peso total (kg)</th><th class="num">Leituras</th><th class="num">Tempo total</th><th class="num">Tempo médio / lançamento</th><th class="num">Sem 967</th><th class="num">Pontos / pessoa</th><th class="num">Valor / pessoa</th></tr></thead>
         <tbody id="tb-equipes"></tbody>
       </table></div>
       <h2 class="mt">Por usuário</h2>
       <div class="tabela-wrap"><table class="tabela">
-        <thead><tr><th>Usuário</th><th>Equipe(s)</th><th class="num">Lançamentos</th><th class="num">Carregamentos</th><th class="num">Peso (kg)</th><th class="num">Leituras</th><th class="num">Tempo total</th><th class="num">Tempo médio / lançamento</th></tr></thead>
+        <thead><tr><th>Usuário</th><th>Equipe(s)</th><th class="num">Lançamentos</th><th class="num">Carregamentos</th><th class="num">Peso (kg)</th><th class="num" title="Peso ÷ kg por unidade (Configurações)">Ton. embarque</th><th class="num">Pontos</th><th class="num">Valor</th><th class="num">Leituras</th><th class="num">Tempo total</th><th class="num">Tempo médio / lançamento</th></tr></thead>
         <tbody id="tb-usuarios"></tbody>
       </table></div>
       <p class="suave"><small>Tempo de um lançamento = de quando o lançamento anterior foi salvo até quando este foi salvo (mesma equipe, mesmo dia). No primeiro lançamento do dia, conta da primeira leitura até salvar. Por usuário, tudo o que a equipe lançou conta para cada pessoa que estava nela naquele momento.</small></p>
@@ -110,6 +110,18 @@
         <p class="suave">Desligado: a segunda equipe é <b>bloqueada</b> com a mensagem "Carregamento já iniciado pela Equipe X".<br>
           Ligado: a leitura é aceita, mas a equipe recebe o <b>aviso</b>.</p>
         <button class="btn" type="button" id="cfg-salvar">Salvar</button>
+      </div>
+      <div class="cartao">
+        <h2>Pontos da produtividade</h2>
+        <p class="suave">Cada pessoa recebe o peso de todos os carregamentos que a equipe dela lançou no período.
+          O peso é dividido em unidades (só as completas contam), cada unidade vale os pontos abaixo e cada ponto vale o valor em R$.</p>
+        <div class="grade-filtros">
+          <div class="campo"><label for="cfg-kg">Tonelagem: kg por unidade</label><input id="cfg-kg" inputmode="decimal" placeholder="5000"></div>
+          <div class="campo"><label for="cfg-pontos">Pontos por unidade</label><input id="cfg-pontos" inputmode="decimal" placeholder="1,2"></div>
+          <div class="campo"><label for="cfg-valor">Valor pago por ponto (R$)</label><input id="cfg-valor" inputmode="decimal" placeholder="0,00"></div>
+        </div>
+        <p class="ajuda" id="cfg-exemplo"></p>
+        <button class="btn" type="button" id="cfg-salvar-pontos">Salvar regra de pontos</button>
       </div>
     </section>
   </main>

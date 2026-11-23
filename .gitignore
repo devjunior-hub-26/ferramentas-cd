@@ -3,3 +3,6 @@
 *.xlsx
 *.xls
 *.csv
+
+# Arquivos com matrículas ou dados reais (SQL do Winthor etc.)
+privado/
